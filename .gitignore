@@ -1,0 +1,10 @@
+infox_prose-x86_64-v0.3/
+
+bin/
+report/
+
+# Prerequisites
+*.d
+
+# Object files
+*.o
