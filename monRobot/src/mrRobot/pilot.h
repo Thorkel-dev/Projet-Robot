@@ -34,6 +34,7 @@
 
 #ifndef PILOT_H
 #define PILOT_H
+
 #include "prose.h"
 
 typedef enum

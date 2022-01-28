@@ -1,11 +1,10 @@
-/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */  
 /**
  * @file  main.c
  *
  * @brief  Launch the Robot's programm for basic version (no modularity, no socket, no task, no error's management)
  *
- * @author Jerome Delatour
- * @date 19-04-2016
+ * @author Edouard Gautier
+ * @date 28-01-2022
  * @version 1
  * @section License
  *

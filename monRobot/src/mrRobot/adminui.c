@@ -10,53 +10,53 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
-#include <pthread.h>
-
-#include "prose.h"
-#include "light_sensor.h"
 
 #include "adminui.h"
 
 /**
- * La touche permettant de faire tourner à gauche le robot.
+ * @brief La touche permettant de faire tourner à gauche le robot.
  */
 #define LEFT_KEY 'q'
 
 /**
- * La touche permettant de faire tourner à droite le robot.
+ * @brief La touche permettant de faire tourner à droite le robot.
  */
 #define RIGHT_KEY 'd'
 
 /**
- * La touche permettant de faire reculer le robot.
+ * @brief La touche permettant de faire reculer le robot.
  */
 #define FORWARD_KEY 'z'
 
 /**
- * La touche permettant de faire avancer le robot.
+ * @brief La touche permettant de faire avancer le robot.
  */
 #define BACK_KEY 's'
 
 /**
- * La touche permettant de stopper le robot.
+ * @brief La touche permettant de stopper le robot.
  */
 #define STOP_KEY ' '
 
 /**
- * La touche permettant de nettoyer le terminal.
+ * @brief La touche permettant de nettoyer le terminal.
  */
 #define ERASE_LOG_KEY 'e'
 
 /**
- * La touche permettant d'afficher l'état du robot.
+ * @brief La touche permettant d'afficher l'état du robot.
  */
 #define DISPLAY_STATE_KEY 'r'
 
 /**
- * La touche permettant de quitter, équivalent à CTRL+C.
+ * @brief La touche permettant de quitter, équivalent à CTRL+C.
  */
 #define QUIT_KEY 'a'
 
+/**
+ * @brief Vitesse par défaut du robot
+ */
+#define POWER 100
 /**
  * @brief Affiche les touches de la télécommande
  */
@@ -140,23 +140,19 @@ static void captureChoice()
     {
         struct termios oldt, newt;
 
-        /*tcgetattr récupère les paramètres du terminal
-        STDIN_FILENO dit à tcgetattr d'écrire les paramètres de stdin sur old*/
+        // Ecrit les paramètres de stdin sur old
         tcgetattr(STDIN_FILENO, &oldt);
-        /*ces paramètres sont copiés dans la variable newt*/
+
         newt = oldt;
 
-        /*ICANON s'occupe de gérer une seule ligne à la fois
-        ECHO pour enlever le flag ECHO*/
-        newt.c_lflag &= ~(ICANON | ECHO); // fait les flags de new comparé à l'opposé de ICANON et ECHO
+        newt.c_lflag &= ~(ICANON | ECHO); // Fait les flags de new comparé à l'opposé de ICANON et ECHO
 
-        /*Les nouveaux paramètres sont envoyés à STDIN
-        TCSANOW dit à tcsetattr de changer les attributs immédiatement */
+        // Change les attributs immédiatement
         tcsetattr(STDIN_FILENO, TCSANOW, &newt);
 
         caractere = getchar();
 
-        /*On remet les anciens paramètres*/
+        // On remet les anciens paramètres
         tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 
         switch (caractere)
@@ -193,7 +189,7 @@ static void captureChoice()
 
 VelocityVector translate(const Direction direction)
 {
-    VelocityVector velocityVector = {direction, 100};
+    VelocityVector velocityVector = {direction, POWER};
     return velocityVector;
 }
 

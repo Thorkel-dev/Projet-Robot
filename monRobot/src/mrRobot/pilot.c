@@ -91,8 +91,6 @@ extern void Pilot_check()
     }
     else
     {
-        printf("stop");
-        Pilot_stop();
         VelocityVector vector = {STOP, 0};
         run(vector);
     }
