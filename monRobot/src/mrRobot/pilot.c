@@ -1,4 +1,3 @@
-/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /**
  * @file pilot.c
  *
@@ -44,7 +43,7 @@ static void sendMvt(VelocityVector vel);
  */
 static void run(VelocityVector vel);
 
-static PilotState *pilot;
+static PilotState *pilot = 0;
 static StateMachine stateMachine;
 
 extern void Pilot_new()
@@ -74,6 +73,31 @@ extern void Pilot_setVelocity(VelocityVector vel)
     run(vel);
 }
 
+extern PilotState Pilot_getState()
+{
+    pilot->collision = hasBumped();
+    pilot->luminosity = Robot_getSensorState().luminosity;
+    pilot->speed = Robot_getRobotSpeed();
+    Pilot_check();
+
+    return *pilot;
+}
+
+extern void Pilot_check()
+{
+    if (!hasBumped())
+    {
+        stateMachine = RUNNING;
+    }
+    else
+    {
+        printf("stop");
+        Pilot_stop();
+        VelocityVector vector = {STOP, 0};
+        run(vector);
+    }
+}
+
 static bool_e hasBumped()
 {
     const bool_e bumped = (Robot_getSensorState().collision == BUMPED);
@@ -99,31 +123,6 @@ static void sendMvt(VelocityVector vel)
     default:
         Pilot_stop();
         break;
-    }
-}
-
-extern PilotState Pilot_getState()
-{
-    pilot->collision = hasBumped();
-    pilot->luminosity = Robot_getSensorState().luminosity;
-    pilot->speed = Robot_getRobotSpeed();
-    Pilot_check();
-
-    return *pilot;
-}
-
-extern void Pilot_check()
-{
-    if (!hasBumped())
-    {
-        stateMachine = RUNNING;
-    }
-    else
-    {
-        printf("stop");
-        Pilot_stop();
-        VelocityVector vector = {STOP, 0};
-        run(vector);
     }
 }
 

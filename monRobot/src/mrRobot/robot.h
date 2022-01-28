@@ -1,11 +1,10 @@
-/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /**
  * @file  robot.h
  *
  * @brief  description
  *
- * @author Gautier Edouard
- * @date 21-01-2022
+ * @author Edouard Gautier
+ * @date 28-01-2022
  * @version version 1
  * @section License
  *
@@ -74,6 +73,18 @@ typedef struct
 } SensorState;
 
 /**
+ * @brief Initialise le robot ainsi que la connexion
+ *
+ *  @return Robot * Pointeur vers le robot
+ */
+extern Robot *Robot_new();
+
+/**
+ *  @brief Detruit l'objet Robot en mémoire
+ */
+extern void Robot_free();
+
+/**
  * @brief Démarre le Robot (initialise la communication et ouvre les pins)
  */
 extern void Robot_start();
@@ -84,9 +95,13 @@ extern void Robot_start();
 extern void Robot_stop();
 
 /**
- *  @brief Detruit l'objet Robot en mémoire
+ * @brief Applique la vitesse des moteurs
+ *
+ * @param vr vitesse du moteur droit
+ * @param vl vitesse du moteur gauche
  */
-extern void Robot_free();
+extern void Robot_setWheelsVelocity(int vr, int vl);
+
 /**
  * @brief Retourne la vitesse du robot (moyenne positive de la vitesse des moteurs)
  *
@@ -100,20 +115,5 @@ extern int Robot_getRobotSpeed();
  * @return SensorState état des capteurs
  */
 extern SensorState Robot_getSensorState();
-
-/**
- * @brief Applique la vitesse des moteurs
- *
- * @param vr vitesse du moteur droit
- * @param vl vitesse du moteur gauche
- */
-extern void Robot_setWheelsVelocity(int vr, int vl);
-
-/**
- * @brief Initialise le robot ainsi que la connexion
- *
- *  @return Robot * Pointeur vers le robot
- */
-extern Robot *Robot_new();
 
 #endif /* ROBOT_H */

@@ -1,11 +1,10 @@
-/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */  
 /**
  * @file  adminUI.h
  *
  * @brief  This component describe the admin user interface. It captures the user's controls and send them to the pilot module.
  *
- * @author Jerome Delatour
- * @date 17-04-2016
+ * @author Edouard Gautier
+ * @date 28-01-2022
  * @version 1
  * @section License
  *
@@ -32,13 +31,6 @@
  * THE SOFTWARE.
  * 
  */
-/**
- * \file adminUI.h
- *
- * \author Léo Chauvin
- */
-#include "prose.h"
-
 
 #ifndef ADMINUI_H_
 #define ADMINUI_H_
@@ -53,6 +45,12 @@
 extern void AdminUI_new(void);
 
 /**
+ * @brief Déclenche de la destruction des instances des moteurs et des capteurs d'obstacle
+ * @see Pilot_free()
+ */
+extern void AdminUI_free(void);
+
+/**
  * @brief Déclenche la mise en fonctionnement du robot et des capteurs d'obstacle
  * @see Pilot_start()
  */
@@ -63,11 +61,5 @@ extern void AdminUI_start(void);
  * @see Pilot_stop()
  */
 extern void AdminUI_stop(void);
-
-/**
- * @brief Déclenche de la destruction des instances des moteurs et des capteurs d'obstacle
- * @see Pilot_free()
- */
-extern void AdminUI_free(void);
 
 #endif

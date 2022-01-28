@@ -1,11 +1,10 @@
-/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 /**
  * @file  robot.h
  *
  * @brief  description
  *
- * @author Gautier Edouard
- * @date 21-01-2022
+ * @author Edouard Gautier
+ * @date 28-01-2022
  * @version version 1
  * @section License
  *
@@ -74,16 +73,6 @@ typedef struct
 } PilotControle;
 
 /**
- * @brief Démarrer mon pilot (vitesses moteurs à zéro).
- */
-extern void Pilot_start();
-
-/**
- * @brief Arrête mon pilot et mon robot (vitesses moteurs à zéro).
- */
-extern void Pilot_stop();
-
-/**
  * @brief Initialise le pilot en mémoire
  */
 extern void Pilot_new();
@@ -92,6 +81,16 @@ extern void Pilot_new();
  * destruct l'object Pilot en mémoire
  */
 extern void Pilot_free();
+
+/**
+ * @brief Démarrer mon pilot (vitesses moteurs à zéro).
+ */
+extern void Pilot_start();
+
+/**
+ * @brief Arrête mon pilot et mon robot (vitesses moteurs à zéro).
+ */
+extern void Pilot_stop();
 
 /**
  * @brief Applique les consignes de vitesse et de direction
