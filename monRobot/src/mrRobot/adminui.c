@@ -57,6 +57,9 @@
  * @brief Vitesse par défaut du robot
  */
 #define POWER 100
+
+static int caractere = ERASE_LOG_KEY;
+
 /**
  * @brief Affiche les touches de la télécommande
  */
@@ -65,7 +68,12 @@ static void display(void);
 /**
  * @brief Récupère la touche entrée par l'utilisateur
  */
-static void captureChoice(void);
+static void capturechoise(void);
+
+/**
+ * @brief Lance l'application
+ */
+static void run();
 
 /**
  * @brief Convertie de la direction choisie par l'utilisateur en un vecteur vitesse
@@ -111,7 +119,7 @@ extern void AdminUI_start()
 {
     Pilot_start();
     display();
-    captureChoice();
+    run();
 }
 
 extern void AdminUI_stop()
@@ -131,60 +139,6 @@ static void display()
     printf("%c : Effacer\n", ERASE_LOG_KEY);
     printf("%c : Afficher l'état du robot\n\n", DISPLAY_STATE_KEY);
     printf("%c : \033[31mQuitter\033[00m\n\n", QUIT_KEY);
-}
-
-static void captureChoice()
-{
-    int caractere = ERASE_LOG_KEY;
-    do
-    {
-        struct termios oldt, newt;
-
-        // Ecrit les paramètres de stdin sur old
-        tcgetattr(STDIN_FILENO, &oldt);
-
-        newt = oldt;
-
-        newt.c_lflag &= ~(ICANON | ECHO); // Fait les flags de new comparé à l'opposé de ICANON et ECHO
-
-        // Change les attributs immédiatement
-        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-
-        caractere = getchar();
-
-        // On remet les anciens paramètres
-        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-
-        switch (caractere)
-        {
-        case LEFT_KEY:
-            askMvt(LEFT);
-            break;
-        case RIGHT_KEY:
-            askMvt(RIGHT);
-            break;
-        case FORWARD_KEY:
-            askMvt(FORWARD);
-            break;
-        case BACK_KEY:
-            askMvt(BACKWARD);
-            break;
-        case STOP_KEY:
-            askMvt(STOP);
-            break;
-        case ERASE_LOG_KEY:
-            askClearLog();
-            break;
-        case DISPLAY_STATE_KEY:
-            ask4Log();
-            break;
-        case QUIT_KEY:
-            quit();
-            break;
-        default:
-            break;
-        }
-    } while (caractere != QUIT_KEY);
 }
 
 VelocityVector translate(const Direction direction)
@@ -218,4 +172,62 @@ static void askClearLog()
 static void quit()
 {
     Pilot_stop();
+}
+
+static void capturechoise()
+{
+    switch (caractere)
+    {
+    case LEFT_KEY:
+        askMvt(LEFT);
+        break;
+    case RIGHT_KEY:
+        askMvt(RIGHT);
+        break;
+    case FORWARD_KEY:
+        askMvt(FORWARD);
+        break;
+    case BACK_KEY:
+        askMvt(BACKWARD);
+        break;
+    case STOP_KEY:
+        askMvt(STOP);
+        break;
+    case ERASE_LOG_KEY:
+        askClearLog();
+        break;
+    case DISPLAY_STATE_KEY:
+        ask4Log();
+        break;
+    case QUIT_KEY:
+        quit();
+        break;
+    default:
+        break;
+    }
+}
+
+static void run()
+{
+    do
+    {
+        struct termios oldt, newt;
+
+        // Ecrit les paramètres de stdin sur old
+        tcgetattr(STDIN_FILENO, &oldt);
+
+        newt = oldt;
+
+        newt.c_lflag &= ~(ICANON | ECHO); // Fait les flags de new comparé à l'opposé de ICANON et ECHO
+
+        // Change les attributs immédiatement
+        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+        caractere = getchar();
+
+        // On remet les anciens paramètres
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+
+        capturechoise();
+    } while (caractere != QUIT_KEY);
 }
