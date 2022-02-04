@@ -32,11 +32,11 @@ SUBDIRS = $(SRCDIR)
 export CC = gcc
 
 # options de compilation
-export CCFLAGS += -O0 
+export CCFLAGS += -O0
 # avec debuggage : -g -DDEBUG
 # sans debuggage : -DNDEBUG
 export CCFLAGS += -g -DNDEBUG
- # gestion automatique des dépendances
+# gestion automatique des dépendances
 export CCFLAGS += -MMD -MP
 export CCFLAGS += -D_BSD_SOURCE -D_XOPEN_SOURCE_EXTENDED -D_XOPEN_SOURCE -D_DEFAULT_SOURCE -D_GNU_SOURCE
 #On compile en utilisant les options de gcc
@@ -72,6 +72,6 @@ clean:
 
 check:
 	@[ -d $(CHECK_DIR) ] || mkdir -p $(CHECK_DIR)
-	@cppcheck --enable=all --xml --xml-version=2 ./ 2>$(CHECK_DIR)/report.xml
-	@cppcheck-htmlreport --source-dir=./ --file=$(CHECK_DIR)/report.xml --report-dir=$(CHECK_DIR)
+	@cppcheck --enable=all --xml --xml-version=2 --suppress=missingInclude ./ 2>$(CHECK_DIR)/report.xml
+	@cppcheck-htmlreport --source-dir=./ --file=$(CHECK_DIR)/report.xml --report-dir=$(CHECK_DIR) --title="Projet Robot"
 
