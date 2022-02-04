@@ -13,14 +13,47 @@
 #include "pilot.h"
 #include "robot.h"
 
-/**
- * @brief Les différent état du pilot
- */
+enum State_e
+{
+    S_NONE = 0,
+    S_VERS_RUNNING,
+    S_RUNNING,
+    S_IDLE,
+    S_NB_STATE
+};
+
 typedef enum
 {
-    IDLE = 0,
-    RUNNING
-} StateMachine;
+    E_CHANGE_MVT = 0,
+    E_ASK_LOG,
+    E_NB_EVENT
+} Event;
+
+enum Action_e
+{
+    A_NONE = 0,
+    A_SET_MVT,
+    A_SHOW_LOG,
+    A_NB_ACTION
+};
+
+struct transition_t
+{
+    enum State_e stateNext;
+    enum Action_e action;
+};
+
+static struct transition_t s_stateMachine[S_NB_STATE][E_NB_EVENT] =
+    {
+        [S_IDLE][E_ASK_LOG] = {S_IDLE, A_SHOW_LOG},
+        [S_RUNNING][E_ASK_LOG] = {S_RUNNING, A_SHOW_LOG},
+
+        [S_IDLE][E_CHANGE_MVT] = {S_VERS_RUNNING, A_SET_MVT},
+        [S_RUNNING][E_CHANGE_MVT] = {S_VERS_RUNNING, A_SET_MVT},
+
+        [S_VERS_RUNNING][E_CHANGE_MVT] = {S_RUNNING, A_SET_MVT},
+        [S_VERS_RUNNING][E_CHANGE_MVT] = {S_IDLE, A_SET_MVT},
+};
 
 /**
  * @brief Vérifie s'il y a un contact sur les capteurs
@@ -44,7 +77,7 @@ static void sendMvt(VelocityVector vel);
 static void run(VelocityVector vel);
 
 static PilotState *pilot = 0;
-static StateMachine stateMachine;
+static State_e stateMachine;
 
 extern void Pilot_new()
 {
@@ -83,7 +116,7 @@ extern PilotState Pilot_getState()
     return *pilot;
 }
 
-extern void Pilot_check()
+extern void Pilot_check() // TODO
 {
     if (!hasBumped())
     {
@@ -124,35 +157,26 @@ static void sendMvt(VelocityVector vel)
     }
 }
 
-static void run(VelocityVector vector)
+static void run(Event event, VelocityVector vector)
 {
-    switch (stateMachine)
+    const enum Action_e action = s_stateMachine[s_currentState][event].action;
+    const enum State_e stateNext = s_stateMachine[s_currentState][event].stateNext;
+
+    switch (action)
     {
+    case A_SET_MVT:
+        Pilot_setVelocity(vector);
+        break;
+
+    case A_SHOW_LOG:
+        PilotState l_state = Pilot_getState();
+        break;
     default:
-    case IDLE:
-        if (vector.dir != STOP && !pilot->collision)
-        {
-            Pilot_start();
-            sendMvt(vector);
-            stateMachine = RUNNING;
-        }
-        else
-        {
-            Pilot_stop();
-        }
         break;
+    }
 
-    case RUNNING:
-        if (pilot->collision == TRUE)
-        {
-            vector.power = 0;
-        }
-
-        if (vector.power == 0)
-        {
-            stateMachine = IDLE;
-        }
-        sendMvt(vector);
-        break;
+    if (stateNext != S_NONE)
+    {
+        s_currentState = l_stateNext;
     }
 }
