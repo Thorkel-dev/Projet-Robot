@@ -56,29 +56,29 @@ typedef struct
 	ContactSensor *sensorFront; // Capteur avant
 	ContactSensor *sensorFloor; // Capteur plafond
 	LightSensor *light;			// Capteur de luminosité
-} Robot;
+} Robot_s;
 
 typedef enum
 {
 	NO_BUMP = 0, // Pas de contact
 	BUMPED		 // Contact
-} Collision;
+} Collision_e;
 
 /**
  * Les états des capteurs du robot
  */
 typedef struct
 {
-	Collision collision;
+	Collision_e collision;
 	float luminosity;
-} SensorState;
+} SensorState_s;
 
 /**
  * @brief Initialise le robot ainsi que la connexion
  *
  *  @return Robot * Pointeur vers le robot
  */
-extern Robot *Robot_new();
+extern Robot_s *Robot_new();
 
 /**
  *  @brief Detruit l'objet Robot en mémoire
@@ -115,6 +115,6 @@ extern int Robot_getRobotSpeed();
  *
  * @return SensorState état des capteurs
  */
-extern SensorState Robot_getSensorState();
+extern SensorState_s Robot_getSensorState();
 
 #endif /* ROBOT_H */

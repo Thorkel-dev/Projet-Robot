@@ -58,7 +58,7 @@
  */
 #define POWER 100
 
-static int caractere = ERASE_LOG_KEY;
+static int S_caractere = ERASE_LOG_KEY;
 
 /**
  * @brief Affiche les touches de la télécommande
@@ -79,16 +79,16 @@ static void run();
  * @brief Convertie de la direction choisie par l'utilisateur en un vecteur vitesse
  *
  * @param direction la direction dans laquelle le robot doit aller.
- * @return VelocityVector le vector vitesse correspond à la direction où aller.
+ * @return VelocityVector_s le vector vitesse correspond à la direction où aller.
  */
-static VelocityVector translate(const Direction direction);
+static VelocityVector_s translate(const Direction_e direction);
 
 /**
  * @brief Transmet la direction donnée à Pilot.
  *
  * @param direction la direction demandée.
  */
-static void askMvt(const Direction direction);
+static void askMvt(const Direction_e direction);
 
 /**
  * @brief Affiche l'état du robot
@@ -141,13 +141,13 @@ static void display()
     printf("%c : \033[31mQuitter\033[00m\n\n", QUIT_KEY);
 }
 
-VelocityVector translate(const Direction direction)
+VelocityVector_s translate(const Direction_e direction)
 {
-    VelocityVector velocityVector = {direction, POWER};
+    VelocityVector_s velocityVector = {direction, POWER};
     return velocityVector;
 }
 
-static void askMvt(const Direction direction)
+static void askMvt(const Direction_e direction)
 {
     Pilot_setVelocity(translate(direction));
 }
@@ -156,7 +156,7 @@ static void ask4Log()
 {
     askClearLog();
 
-    const PilotState pilotState = Pilot_getState();
+    const PilotState_s pilotState = Pilot_getState();
     printf("\033[1A\033[K"); // Positionnement du curseur 1 ligne au-dessus et effacement de celle ci
     printf("\nVitesse du robot : %d cm/s\n", pilotState.speed);
     printf("Collision : %s\033[0m\n", pilotState.collision ? "\033[31mOui" : "\033[32mNon"); // Oui en rouge et Non en vert
@@ -176,7 +176,7 @@ static void quit()
 
 static void capturechoise()
 {
-    switch (caractere)
+    switch (S_caractere)
     {
     case LEFT_KEY:
         askMvt(LEFT);
@@ -223,11 +223,11 @@ static void run()
         // Change les attributs immédiatement
         tcsetattr(STDIN_FILENO, TCSANOW, &newt);
 
-        caractere = getchar();
+        S_caractere = getchar();
 
         // On remet les anciens paramètres
         tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 
         capturechoise();
-    } while (caractere != QUIT_KEY);
+    } while (S_caractere != QUIT_KEY);
 }

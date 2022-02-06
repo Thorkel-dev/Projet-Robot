@@ -44,13 +44,13 @@ typedef enum
     FORWARD,
     BACKWARD,
     STOP
-} Direction;
+} Direction_e;
 
 typedef struct
 {
-    Direction dir;
+    Direction_e dir;
     int power;
-} VelocityVector;
+} VelocityVector_s;
 
 /**
  * @brief Structure de l'état du robot
@@ -60,18 +60,18 @@ typedef struct
     int speed;
     bool_e collision;
     int luminosity;
-} PilotState;
+} PilotState_s;
 
 typedef struct
 {
     void (*start)();
     void (*stop)();
-    void (*setVelocity)(VelocityVector);
-    PilotState (*getState)();
+    void (*setVelocity)(VelocityVector_s);
+    PilotState_s (*getState)();
     void (*check)();
     void (*free)();
     void (*new)();
-} PilotControle;
+} PilotControle_s;
 
 /**
  * @brief Initialise le pilot en mémoire
@@ -98,14 +98,14 @@ extern void Pilot_stop();
  *
  * @param vel Vecteur vitesse
  */
-extern void Pilot_setVelocity(VelocityVector vel);
+extern void Pilot_setVelocity(VelocityVector_s vel);
 
 /**
  * @brief Donne l'état général du pilot
  *
- * @return PilotState l'état du pilot
+ * @return PilotState_s l'état du pilot
  */
-extern PilotState Pilot_getState();
+extern PilotState_s Pilot_getState();
 
 /**
  * @brief Vérifie si le pilot peut bouger, sinon l'arrête
