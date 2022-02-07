@@ -19,7 +19,7 @@ typedef enum State
     S_RUNNING,
     S_IDLE,
     S_VERS_RUNNING,
-    S_NB_STATE = 4
+    S_NB_STATE
 } State_e;
 
 typedef enum Event
@@ -28,17 +28,16 @@ typedef enum Event
     E_ASK_LOG,
     E_BUMPED,
     E_STOP,
-    E_NB_EVENT = 4
+    E_NB_EVENT
 } Event_e;
 
 typedef enum Action
 {
-    A_NONE = 0,
-    A_SET_MVT,
-    A_SHOW_LOG,
-    A_STOP,
+    A_SHOW_LOG = 0,
     A_CHECK_VECTOR,
-    A_NB_ACTION = 5
+    A_STOP,
+    A_SET_MVT,
+    A_NB_ACTION
 } Action_e;
 
 typedef struct Transition
@@ -72,22 +71,30 @@ static bool_e hasBumped();
 /**
  * @brief Convertit le vecteur vitesse en cosigne pour le robot
  *
- * @param vel Vecteur vitesse
+ * @param vector Vecteur vitesse
  */
-static void sendMvt(VelocityVector_s vel);
+static void sendMvt(VelocityVector_s vector);
+
+/**
+ * @brief Vérifie si notre vecteur permet au robot d'avancer
+ *
+ * @param vector Vecteur vitesse
+ */
+static void checkVector(VelocityVector_s vector);
 
 /**
  * @brief Machine à état de notre pilot
  *
- * @param vel Vecteur vitesse
+ * @param vector Vecteur vitesse
  */
-static void run(Event_e event, VelocityVector_s vel);
-
-static void performAction(Action_e action, VelocityVector_s vector);
+static void run(Event_e event, VelocityVector_s vector);
 
 static PilotState_s *p_S_pilot = 0;
 static State_e S_currentState;
 static VelocityVector_s vectorDefault = {STOP, 0};
+
+typedef void (*action_p)();
+static const action_p a_S_actionTab[A_NB_ACTION] = {&Pilot_check, &checkVector, &Pilot_stop, &sendMvt};
 
 extern void Pilot_new()
 {
@@ -105,15 +112,15 @@ extern void Pilot_start()
     S_currentState = S_IDLE;
 }
 
-extern void Pilot_stop()
+extern void Pilot_stop(VelocityVector_s vector)
 {
     Robot_stop();
     S_currentState = S_IDLE;
 }
 
-extern void Pilot_setVelocity(VelocityVector_s vel)
+extern void Pilot_setVelocity(VelocityVector_s vector)
 {
-    run(E_CHANGE_MVT, vel);
+    run(E_CHANGE_MVT, vector);
 }
 
 extern PilotState_s Pilot_getState()
@@ -126,7 +133,7 @@ extern PilotState_s Pilot_getState()
     return *p_S_pilot;
 }
 
-extern void Pilot_check()
+extern void Pilot_check(VelocityVector_s vector)
 {
     if (!hasBumped())
     {
@@ -144,21 +151,21 @@ static bool_e hasBumped()
     return bumped;
 }
 
-static void sendMvt(VelocityVector_s vel)
+static void sendMvt(VelocityVector_s vector)
 {
-    switch (vel.dir)
+    switch (vector.dir)
     {
     case FORWARD:
-        Robot_setWheelsVelocity(vel.power, vel.power);
+        Robot_setWheelsVelocity(vector.power, vector.power);
         break;
     case BACKWARD:
-        Robot_setWheelsVelocity(-vel.power, -vel.power);
+        Robot_setWheelsVelocity(-vector.power, -vector.power);
         break;
     case LEFT:
-        Robot_setWheelsVelocity(vel.power, -vel.power);
+        Robot_setWheelsVelocity(vector.power, -vector.power);
         break;
     case RIGHT:
-        Robot_setWheelsVelocity(-vel.power, vel.power);
+        Robot_setWheelsVelocity(-vector.power, vector.power);
         break;
     default:
         run(E_STOP, vectorDefault);
@@ -166,6 +173,17 @@ static void sendMvt(VelocityVector_s vel)
     }
 }
 
+static void checkVector(VelocityVector_s vector)
+{
+    if (vector.dir == STOP)
+    {
+        run(E_STOP, vectorDefault);
+    }
+    else
+    {
+        run(E_CHANGE_MVT, vector);
+    }
+}
 static void run(Event_e event, VelocityVector_s vector)
 {
     const Action_e action = a_S_stateMachine[S_currentState][event].action;
@@ -174,33 +192,6 @@ static void run(Event_e event, VelocityVector_s vector)
     if (stateNext != S_NONE)
     {
         S_currentState = stateNext;
-        performAction(action, vector);
-    }
-}
-
-static void performAction(Action_e action, VelocityVector_s vector)
-{
-    switch (action)
-    {
-    case A_SET_MVT:
-        sendMvt(vector);
-        break;
-    case A_SHOW_LOG:
-        Pilot_check();
-        break;
-    case A_STOP:
-        Pilot_stop();
-        break;
-    case A_CHECK_VECTOR:
-        if (vector.dir == STOP)
-        {
-            run(E_STOP, vectorDefault);
-        }
-        else
-        {
-            run(E_CHANGE_MVT, vector);
-        }
-    default:
-        break;
+        a_S_actionTab[action](vector);
     }
 }

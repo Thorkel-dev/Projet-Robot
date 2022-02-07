@@ -124,7 +124,8 @@ extern void AdminUI_start()
 
 extern void AdminUI_stop()
 {
-    Pilot_stop();
+    VelocityVector_s velocityVector = {0, 0};
+    Pilot_stop(velocityVector);
 }
 
 static void display()
@@ -171,7 +172,8 @@ static void askClearLog()
 
 static void quit()
 {
-    Pilot_stop();
+    VelocityVector_s velocityVector = {0, 0};
+    Pilot_stop(velocityVector);
 }
 
 static void capturechoise()

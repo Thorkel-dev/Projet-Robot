@@ -91,7 +91,7 @@ extern void Pilot_start();
 /**
  * @brief Arrête mon pilot et mon robot (vitesses moteurs à zéro).
  */
-extern void Pilot_stop();
+extern void Pilot_stop(VelocityVector_s vector);
 
 /**
  * @brief Applique les consignes de vitesse et de direction
@@ -110,6 +110,6 @@ extern PilotState_s Pilot_getState();
 /**
  * @brief Vérifie si le pilot peut bouger, sinon l'arrête
  */
-extern void Pilot_check();
+extern void Pilot_check(VelocityVector_s vector);
 
 #endif /* PILOT_H */
