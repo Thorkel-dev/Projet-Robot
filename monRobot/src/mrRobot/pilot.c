@@ -18,14 +18,17 @@ typedef enum State
     S_NONE = 0,
     S_RUNNING,
     S_IDLE,
-    S_NB_STATE = 3
+    S_VERS_RUNNING,
+    S_NB_STATE = 4
 } State_e;
 
 typedef enum Event
 {
     E_CHANGE_MVT = 0,
     E_ASK_LOG,
-    E_NB_EVENT = 2
+    E_BUMPED,
+    E_STOP,
+    E_NB_EVENT = 4
 } Event_e;
 
 typedef enum Action
@@ -33,7 +36,9 @@ typedef enum Action
     A_NONE = 0,
     A_SET_MVT,
     A_SHOW_LOG,
-    A_NB_ACTION = 3
+    A_STOP,
+    A_CHECK_VECTOR,
+    A_NB_ACTION = 5
 } Action_e;
 
 typedef struct Transition
@@ -47,8 +52,14 @@ static Transition_s a_S_stateMachine[S_NB_STATE][E_NB_EVENT] =
         [S_IDLE][E_ASK_LOG] = {S_IDLE, A_SHOW_LOG},
         [S_RUNNING][E_ASK_LOG] = {S_RUNNING, A_SHOW_LOG},
 
-        [S_IDLE][E_CHANGE_MVT] = {S_RUNNING, A_SET_MVT},
-        [S_RUNNING][E_CHANGE_MVT] = {S_RUNNING, A_SET_MVT},
+        [S_IDLE][E_CHANGE_MVT] = {S_VERS_RUNNING, A_CHECK_VECTOR},
+        [S_RUNNING][E_CHANGE_MVT] = {S_VERS_RUNNING, A_CHECK_VECTOR},
+
+        [S_RUNNING][E_BUMPED] = {S_IDLE, A_STOP},
+        [S_IDLE][E_BUMPED] = {S_IDLE, A_STOP},
+
+        [S_VERS_RUNNING][E_CHANGE_MVT] = {S_RUNNING, A_SET_MVT},
+        [S_VERS_RUNNING][E_STOP] = {S_IDLE, A_STOP},
 };
 
 /**
@@ -72,8 +83,11 @@ static void sendMvt(VelocityVector_s vel);
  */
 static void run(Event_e event, VelocityVector_s vel);
 
+static void performAction(Action_e action, VelocityVector_s vector);
+
 static PilotState_s *p_S_pilot = 0;
 static State_e S_currentState;
+static VelocityVector_s vectorDefault = {STOP, 0};
 
 extern void Pilot_new()
 {
@@ -107,8 +121,7 @@ extern PilotState_s Pilot_getState()
     p_S_pilot->collision = hasBumped();
     p_S_pilot->luminosity = Robot_getSensorState().luminosity;
     p_S_pilot->speed = Robot_getRobotSpeed();
-    VelocityVector_s vector = {STOP, 0};
-    run(E_ASK_LOG, vector);
+    run(E_ASK_LOG, vectorDefault);
 
     return *p_S_pilot;
 }
@@ -121,9 +134,7 @@ extern void Pilot_check()
     }
     else
     {
-        VelocityVector_s vector = {STOP, 0};
-        S_currentState = S_IDLE;
-        run(E_CHANGE_MVT, vector);
+        run(E_BUMPED, vectorDefault);
     }
 }
 
@@ -150,8 +161,7 @@ static void sendMvt(VelocityVector_s vel)
         Robot_setWheelsVelocity(-vel.power, vel.power);
         break;
     default:
-        Pilot_stop();
-        S_currentState = S_IDLE;
+        run(E_STOP, vectorDefault);
         break;
     }
 }
@@ -164,17 +174,33 @@ static void run(Event_e event, VelocityVector_s vector)
     if (stateNext != S_NONE)
     {
         S_currentState = stateNext;
-        if (action == A_SET_MVT)
-        {
-            sendMvt(vector);
-        }
-        else if (action == A_SHOW_LOG)
-        {
-            Pilot_check();
-        }
+        performAction(action, vector);
     }
-    if (stateNext == S_IDLE)
+}
+
+static void performAction(Action_e action, VelocityVector_s vector)
+{
+    switch (action)
     {
+    case A_SET_MVT:
+        sendMvt(vector);
+        break;
+    case A_SHOW_LOG:
+        Pilot_check();
+        break;
+    case A_STOP:
         Pilot_stop();
+        break;
+    case A_CHECK_VECTOR:
+        if (vector.dir == STOP)
+        {
+            run(E_STOP, vectorDefault);
+        }
+        else
+        {
+            run(E_CHANGE_MVT, vector);
+        }
+    default:
+        break;
     }
 }
