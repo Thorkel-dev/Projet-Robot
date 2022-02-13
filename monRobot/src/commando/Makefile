@@ -9,7 +9,7 @@
 #
 
 # Packages du projet (à compléter si besoin est).
-PACKAGES = mrRobot
+PACKAGES = server robot pilot
 
 # Un niveau de package est accessible.
 SRC  = $(wildcard */*.c)
@@ -19,7 +19,7 @@ SRC  = $(wildcard */*.c)
 OBJ = $(SRC:.c=.o)
 
 # Point d'entrée du programme.
-MAIN = main.c
+MAIN = commando.c
 
 # Gestion automatique des dépendances.
 DEP = $(MAIN:.c=.d)

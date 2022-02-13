@@ -5,22 +5,23 @@
 #
 
 # Répertoire d'installation de la librairie Infox
-# pour la compilation avec le simulateur Intox
+# pour la compilation avec le simulateur Intox 
+# TODO (à adapter) :
+# INTOXDIR = $(realpath /<path>/<to>/infox_prose-<arch>-v0.3
+# Exemple :
+# Attention : pas d'espace ou d'accent dans votre chemin
+# sinon passer par realpath ne fonctionne pas
 INTOXDIR = $(realpath ../infox_prose-x86_64-v0.3/)
 
 
 # Organisation des sources.
 #
 
-export SUBDIRS_TELCO = src/telco
-export SUBDIRS_COMMANDO = src/commando
+export SRCDIR = src
 export BINDIR = bin
 export CHECK_DIR = report
-#
-# Définitions du binaire à générer.
-#
-export PROG_TELCO = $(BINDIR)/telco
-export PROG_COMMANDO = $(BINDIR)/commando
+
+SUBDIRS = $(SRCDIR)
 
 #
 # Définitions des outils.
@@ -48,6 +49,10 @@ export CCFLAGS += -DINTOX
 export CCFLAGS += -I$(INTOXDIR)/include/infox/prose/
 export LDFLAGS += -L$(INTOXDIR)/lib/ -linfox
 
+#
+# Définitions du binaire à générer.
+#
+export PROG = $(BINDIR)/telco
 
 #
 # Règles du Makefile.
@@ -55,21 +60,18 @@ export LDFLAGS += -L$(INTOXDIR)/lib/ -linfox
 
 # Compilation récursive.
 all: 
-	@for i in $(SUBDIRS_COMMANDO); do (cd $$i; make $@); done
-	@for i in $(SUBDIRS_TELCO); do (cd $$i; make $@); done
+    @for i in $(SUBDIRS); do (cd $$i; make $@); done
 
 # Nettoyage.
 .PHONY: clean
 
 clean:
-	@for i in $(SUBDIRS_COMMANDO); do (cd $$i; make $@); done
-	@for i in $(SUBDIRS_TELCO); do (cd $$i; make $@); done
-	@rm -f $(PROG_COMMANDO) core* $(BINDIR)/core*
-	@rm -f $(PROG_TELCO) core* $(BINDIR)/core*
-	@rm -rf $(CHECK_DIR)
+    @for i in $(SUBDIRS); do (cd $$i; make $@); done
+    @rm -f $(PROG) core* $(BINDIR)/core*
+    @rm -rf $(CHECK_DIR)
 
 check:
-	@[ -d $(CHECK_DIR) ] || mkdir -p $(CHECK_DIR)
-	@cppcheck --enable=all --xml --xml-version=2 --suppress=missingInclude ./ 2>$(CHECK_DIR)/report.xml
-	@cppcheck-htmlreport --source-dir=./ --file=$(CHECK_DIR)/report.xml --report-dir=$(CHECK_DIR) --title="Projet Robot"
+    @[ -d $(CHECK_DIR) ] || mkdir -p $(CHECK_DIR)
+    @cppcheck --enable=all --xml --xml-version=2 --suppress=missingInclude ./ 2>$(CHECK_DIR)/report.xml
+    @cppcheck-htmlreport --source-dir=./ --file=$(CHECK_DIR)/report.xml --report-dir=$(CHECK_DIR) --title="Projet Robot"
 

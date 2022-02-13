@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 #include "pilot.h"
-#include "robot.h"
+#include "../robot/robot.h"
 
 typedef enum State
 {
@@ -184,6 +184,7 @@ static void checkVector(VelocityVector_s vector)
         run(E_CHANGE_MVT, vector);
     }
 }
+
 static void run(Event_e event, VelocityVector_s vector)
 {
     const Action_e action = a_S_stateMachine[S_currentState][event].action;
