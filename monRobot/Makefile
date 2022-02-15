@@ -1,9 +1,3 @@
-#
-# Robot v1 C - Makefile principal.
-# 
-# @author Matthias Brun, adapté par Jérôme Delatour
-#
-
 # Répertoire d'installation de la librairie Infox
 # pour la compilation avec le simulateur Intox
 INTOXDIR = $(realpath ../infox_prose-x86_64-v0.3/)
@@ -14,7 +8,7 @@ INTOXDIR = $(realpath ../infox_prose-x86_64-v0.3/)
 
 export SUBDIRS_TELCO = src/telco
 export SUBDIRS_COMMANDO = src/commando
-export BINDIR = bin
+export BINDIR = ../bin
 export CHECK_DIR = report
 #
 # Définitions du binaire à générer.
@@ -56,16 +50,13 @@ export LDFLAGS += -L$(INTOXDIR)/lib/ -linfox
 # Compilation récursive.
 all: 
 	@for i in $(SUBDIRS_COMMANDO); do (cd $$i; make $@); done
-	@for i in $(SUBDIRS_TELCO); do (cd $$i; make $@); done
 
 # Nettoyage.
 .PHONY: clean
 
 clean:
 	@for i in $(SUBDIRS_COMMANDO); do (cd $$i; make $@); done
-	@for i in $(SUBDIRS_TELCO); do (cd $$i; make $@); done
 	@rm -f $(PROG_COMMANDO) core* $(BINDIR)/core*
-	@rm -f $(PROG_TELCO) core* $(BINDIR)/core*
 	@rm -rf $(CHECK_DIR)
 
 check:

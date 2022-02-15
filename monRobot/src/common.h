@@ -2,38 +2,30 @@
 #define _CONFIG_
 
 #define IP_SERVER "127.0.0.1"
-#define PORT_SERVER 8080
+#define PORT_SERVER 2345
 #define SIZE_MESSAGE 128
-#define SIZE_ID 8
+
+#include "../../infox_prose-x86_64-v0.3/include/infox/prose/prose.h"
+typedef enum
+{
+    STOP = 0,
+    FORWARD,
+    BACKWARD,
+    LEFT,
+    RIGHT,
+} Direction_e;
 
 typedef enum
 {
-    E_CHANGE_MVT = 0,
-    E_ASK_LOG,
-    E_DISCONNECT,
-    E_NB_EVENT
-} Event;
-
-typedef enum
-{
-    D_STOP = 0,
-    D_FORWARD,
-    D_BACK,
-    D_LEFT,
-    D_RIGHT,
-} Direction;
+    O_CHANGE_MVT = 0,
+    O_ASK_LOG,
+    O_NB_EVENT
+} Order_e;
 
 typedef struct
 {
-    Event event;
-    Direction direction;
-    char id[SIZE_ID];
-    char message[SIZE_MESSAGE];
-} Data;
-
-typedef unsigned int sizeData;
-
-extern bool_e g_keepGoing;
-
+    Order_e event;
+    Direction_e direction;
+} Data_s;
 
 #endif // _CONFIG_

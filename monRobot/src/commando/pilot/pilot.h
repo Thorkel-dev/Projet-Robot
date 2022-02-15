@@ -35,16 +35,7 @@
 #ifndef PILOT_H
 #define PILOT_H
 
-#include "prose.h"
-
-typedef enum
-{
-    LEFT = 0,
-    RIGHT,
-    FORWARD,
-    BACKWARD,
-    STOP
-} Direction_e;
+#include "../../common.h"
 
 typedef struct
 {

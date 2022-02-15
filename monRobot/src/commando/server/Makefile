@@ -26,4 +26,3 @@ clean:
 	@rm -f $(OBJ) $(DEP)
 
 -include $(DEP)
-

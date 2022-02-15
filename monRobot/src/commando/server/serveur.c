@@ -1,3 +1,11 @@
+/**
+ * @file serveur.c
+ *
+ * @see serveur.h
+ *
+ * @author Gautier Edouard
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -10,171 +18,203 @@
 
 #include "server.h"
 #include "../../common.h"
-#include "pilot/pilot.h"
+#include "../pilot/pilot.h"
+#include "../util.h"
 
 #define MAX_PENDING (1)
+
+/**
+ * @brief Vitesse par défaut du robot
+ */
+#define POWER 100
 
 static int s_socket_ecoute;
 static int s_socket_donnees;
 static struct sockaddr_in s_adresse;
-static bool_e s_clientIsConnected = FALSE;
 
-static void sendMsg(Data *p_data);
-static void readMsg(void);
-static void run(void);
+static void sendMsg(PilotState_s data);
+static void readMsg();
 
-extern void Server_new(void)
+/**
+ * @brief Convertie de la direction choisie par l'utilisateur en un vecteur vitesse
+ *
+ * @param direction la direction dans laquelle le robot doit aller.
+ * @return VelocityVector_s le vector vitesse correspond à la direction où aller.
+ */
+static VelocityVector_s translate(const Direction_e direction);
+
+static void run();
+
+static bool_e works;
+static VelocityVector_s vectorDefault = {STOP, 0};
+struct timeval timeout = {1, 0};
+
+extern void
+Server_new()
 {
-    TRACE("%s%sThe server is created%s\n\n", "\033[44m", "\033[37m", "\033[0m");
-
+    TRACE("%s%sLe serveur est crée%s\n\n", "\033[44m", "\033[37m", "\033[0m");
     s_socket_ecoute = socket(AF_INET, SOCK_STREAM, 0);
+    if (s_socket_ecoute == -1)
+    {
+        perror("Erreur dans la création du socket");
+        exit(s_socket_ecoute);
+    }
     s_adresse.sin_family = AF_INET;
     s_adresse.sin_port = htons(PORT_SERVER);
     s_adresse.sin_addr.s_addr = htonl(INADDR_ANY);
+    Pilot_new();
 }
 
-extern void Server_start(void)
+extern void Server_start()
 {
-    printf("%sThe server is serving on port %d at the address %s%s\n",
+    printf("%sLe serveur est sur le port %d à l'adresse %s%s\n",
            "\033[32m", PORT_SERVER, IP_SERVER, "\033[0m");
-    printf("%sTo shutdown the server press enter%s\n\n", "\033[36m", "\033[0m");
 
     bind(s_socket_ecoute, (struct sockaddr *)&s_adresse, sizeof(s_adresse));
 
     if (listen(s_socket_ecoute, MAX_PENDING) != 0)
     {
-        printf("%sError while listenning the port%s\n", "\033[41m", "\033[0m");
+        printf("%sErreur durant l'écoute du port%s\n", "\033[41m", "\033[0m");
         Server_stop();
         return;
     }
-
+    Pilot_start();
+    works = TRUE;
     run();
 }
 
-extern void Server_stop(void)
+extern void Server_stop()
 {
-    TRACE("%s%sThe socket is closed%s\n", "\033[43m", "\033[38m", "\033[0m");
-
+    TRACE("%sLe serveur est arrété%s\n", "\033[31m", "\033[0m");
+    Pilot_setVelocity(vectorDefault);
+    works = FALSE;
     close(s_socket_ecoute);
-    g_keepGoing = FALSE;
+    Pilot_free();
 }
 
-static void sendMsg(Data *p_data)
+static void sendMsg(PilotState_s data)
 {
-    static int l_count = 0;
-    l_count++;
+    data.collision = htonl(data.collision);
+    data.luminosity = htonl(data.luminosity);
+    data.speed = htonl(data.speed);
+    int quantityWritten = 0;
+    int quantityToWrite = sizeof(data);
 
-    sprintf(p_data->id, "S-%d", l_count);
-
-    p_data->event = htonl(p_data->event);
-    p_data->direction = htonl(p_data->direction);
-
-    sizeData l_quantityWritten = 0;
-    sizeData l_quantityToWrite = sizeof(*p_data);
-
-    while (l_quantityToWrite > 0)
+    while (quantityToWrite > 0)
     {
-        l_quantityWritten = write(s_socket_donnees, p_data + l_quantityWritten, l_quantityToWrite);
+        quantityWritten = write(s_socket_donnees, &data + quantityWritten, quantityToWrite);
 
-        if (l_quantityWritten < 0)
+        if (quantityWritten < 0)
         {
-            printf("%sError when sending the message %s%s\n", "\033[41m", p_data->id, "\033[0m");
-            break; // l_quantityWritten
+            printf("%sError when sending the message%s\n", "\033[41m", "\033[0m");
+            break;
         }
         else
         {
             TRACE("Not all the message has been sent%s", "\n");
-
-            l_quantityToWrite -= l_quantityWritten;
+            quantityToWrite -= quantityWritten;
         }
     }
-
-    TRACE("%sServer send message %s%s\n", "\033[36m", p_data->id, "\033[0m");
+    TRACE("%sServer send message%s\n", "\033[36m", "\033[0m");
 }
 
-static void readMsg(void)
+static void readMsg()
 {
-    Data l_data;
+    Data_s data;
+    int quantityToRead = sizeof(Data_s);
+    int quantityReaddean = 0;
 
-    sizeData l_quantityReaddean = 0;
-    sizeData l_quantityToRead = sizeof(Data);
-
-    while (l_quantityToRead > 0)
+    while (quantityToRead > 0)
     {
-        l_quantityReaddean = read(s_socket_donnees, &l_data + l_quantityReaddean, l_quantityToRead);
+        quantityReaddean = read(s_socket_donnees, &data + quantityReaddean, quantityToRead);
 
-        if (l_quantityReaddean < 0)
+        if (quantityReaddean < 0)
         {
-            printf("%sError when receiving the message%s\n\n", "\033[41m", "\033[0m");
-            break; // l_quantityWritten
-        }
-        else if (l_quantityReaddean == 0)
-        {
-            Pilot_update(E_DISCONNECT, D_STOP);
-
-            disconnectClient();
-            break; // l_quantityWritten
+            printf("%sError when receiving the message%s\n", "\033[41m", "\033[0m");
+            break;
         }
         else
         {
-            TRACE("Not all the message has been read%s", "\n");
-            l_quantityToRead -= l_quantityReaddean;
+            TRACE("Not all the message has been read\n");
+            quantityToRead -= quantityReaddean;
         }
     }
-
-    if (l_quantityToRead == 0)
+    if (quantityToRead == 0)
     {
-        l_data.event = ntohl(l_data.event);
-        l_data.direction = ntohl(l_data.direction);
-
-        TRACE("Receive data:\n\tId: %s\n\tEvent: %d\n\tDirection: %d\n\tMessage: %s\n\n",
-              l_data.id, l_data.event, l_data.direction, l_data.message);
-
-        Pilot_update(l_data.event, l_data.direction);
-    }
-}
-
-static void run(void)
-{
-    fd_set l_env;
-
-    while (g_keepGoing == TRUE)
-    {
-        FD_ZERO(&l_env);
-        FD_SET(STDIN_FILENO, &l_env);
-        FD_SET(s_socket_ecoute, &l_env);
-
-        if (s_clientIsConnected == TRUE)
+        data.direction = ntohl(data.direction);
+        data.event = ntohl(data.event);
+        TRACE("Receive data:%d\n\tDirection: %d\n\tEvent: %s\n\n", data.direction, data.event);
+        if (data.event == O_ASK_LOG)
         {
-            FD_SET(s_socket_donnees, &l_env);
+            sendMsg(Pilot_getState());
         }
         else
         {
-            printf("Waiting for a client...\n");
-        }
-
-        if (select(FD_SETSIZE, &l_env, NULL, NULL, NULL) == -1)
-        {
-            printf("%sError with %sselect()%s\n", "\033[41m", "\033[21m", "\033[0m");
-            break; // g_keepGoing
-        }
-
-        if (FD_ISSET(STDIN_FILENO, &l_env))
-        {
-            printf("\n%sAsk for exit%s\n", "\033[41m", "\033[0m");
-
-            Server_stop();
-            break; // g_keepGoing
-        }
-        else if (FD_ISSET(s_socket_ecoute, &l_env))
-        {
-            connectClient();
-        }
-        else if (FD_ISSET(s_socket_donnees, &l_env))
-        {
-            readMsg();
+            Pilot_setVelocity(translate(data.direction));
         }
     }
+}
 
-    TRACE("%s%sThe server is no more serving%s\n", "\033[43m", "\033[38m", "\033[0m");
+VelocityVector_s translate(const Direction_e direction)
+{
+    VelocityVector_s velocityVector = {direction, POWER};
+    return velocityVector;
+}
+
+static void run()
+{
+    bool_e clientConnect = FALSE;
+    int timeoutcount = 0;
+    fd_set readFd;
+    FD_ZERO(&readFd);                 // Initialisation
+    FD_SET(STDIN_FILENO, &readFd);    // Option standar d'écoute
+    FD_SET(s_socket_ecoute, &readFd); // Lié au socket serveur
+
+    while (works == TRUE && timeoutcount < 6)
+    {
+        if (clientConnect) // On vérifie s'il on est connécté
+        {
+            FD_SET(s_socket_donnees, &readFd); // Lié au socket client
+        }
+        else // On est connecté
+        {
+            printf("wait\n");
+        }
+
+        int rc = select(FD_SETSIZE, &readFd, NULL, NULL, &timeout);
+        // On surveille un descripteur
+        if (rc == -1)
+        {
+            break; // erreur
+        }
+        else if (rc == 0)
+        {
+            timeoutcount++;
+        }
+        else
+        {
+            timeoutcount = 0;
+            // On vérifie si les descripteurs sont présent
+            if (FD_ISSET(s_socket_ecoute, &readFd))
+            {
+                s_socket_donnees = accept(s_socket_ecoute, NULL, 0); // Connection
+
+                if (s_socket_donnees < 0) // Vérification
+                {
+                    clientConnect = FALSE;
+                    Server_stop();
+                }
+                else
+                {
+                    clientConnect = TRUE;
+                }
+            }
+            else if (FD_ISSET(s_socket_donnees, &readFd))
+            {
+                readMsg();
+            }
+        }
+    }
+    close(s_socket_donnees);
+    printf("Client deconnecté");
 }
