@@ -13,7 +13,7 @@
 #include "../../common.h"
 #include "../util.h"
 
-#define MAX_CONNECTION_ATTEMPT 10
+#define MAX_CONNECTION_ATTEMPT 60
 
 int s_socket;
 struct sockaddr_in s_server_address;

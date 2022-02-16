@@ -1,12 +1,14 @@
 #ifndef _CONFIG_
 #define _CONFIG_
 
-#define IP_SERVER "127.0.0.1"
-#define PORT_SERVER 2345
-#define SIZE_MESSAGE 128
+#include <termios.h>
 
 #include "../../infox_prose-x86_64-v0.3/include/infox/prose/prose.h"
 #include "util.h"
+
+#define IP_SERVER "127.0.0.1"
+#define PORT_SERVER 2345
+#define SIZE_MESSAGE 128
 typedef enum
 {
     D_STOP = 0,
@@ -31,6 +33,7 @@ typedef enum
 {
     O_CHANGE_MVT = 0,
     O_ASK_LOG,
+    O_STOP,
     O_NB_ORDER
 } Order_e;
 

@@ -21,6 +21,7 @@
 #include "../pilot/pilot.h"
 
 #define MAX_PENDING (1)
+#define MAX_CONNECTION_ATTEMPT (60)
 
 /**
  * @brief Vitesse par défaut du robot
@@ -46,7 +47,7 @@ static void run();
 
 static bool_e works;
 static VelocityVector_s vectorDefault = {D_STOP, 0};
-struct timeval timeout = {10, 0};
+struct timeval timeout = {1, 0};
 
 extern void
 Server_new()
@@ -66,9 +67,8 @@ Server_new()
 
 extern void Server_start()
 {
-    printf("%sLe serveur est sur le port %d à l'adresse %s%s\n",
+    printf("%sLe serveur est sur le port %d à l'adresse %s%s\n\n",
            "\033[32m", PORT_SERVER, IP_SERVER, "\033[0m");
-
     bind(s_socket_ecoute, (struct sockaddr *)&s_adresse, sizeof(s_adresse));
 
     if (listen(s_socket_ecoute, MAX_PENDING) != 0)
@@ -85,17 +85,14 @@ extern void Server_start()
 extern void Server_stop()
 {
     TRACE("Le serveur est arrété\n");
-    works = FALSE;
-    Pilot_setVelocity(vectorDefault);
     close(s_socket_ecoute);
-    Pilot_free();
 }
 
 static void sendMsg(const PilotState_s pilot)
 {
     Data_s data = convertData(0, 0, pilot.speed, pilot.collision, pilot.luminosity);
     int quantityWritten = 0;
-    int quantityToWrite = sizeof(pilot);
+    int quantityToWrite = sizeof(data);
 
     while (quantityToWrite > 0)
     {
@@ -143,9 +140,15 @@ static void readMsg()
         {
             sendMsg(Pilot_getState());
         }
-        else
+        else if (data.order == O_CHANGE_MVT)
         {
             Pilot_setVelocity(translate(data.direction));
+        }
+        else
+        {
+            works = FALSE;
+            Pilot_stop(vectorDefault);
+            Pilot_free();
         }
     }
 }
@@ -172,19 +175,30 @@ static void run()
     bool_e clientConnect = FALSE;
     int timeoutcount = 0;
     fd_set readFd;
-    FD_ZERO(&readFd);                 // Initialisation
-    FD_SET(STDIN_FILENO, &readFd);    // Option standar d'écoute
-    FD_SET(s_socket_ecoute, &readFd); // Lié au socket serveur
+    FD_ZERO(&readFd); // Initialisation
 
-    while (works == TRUE && timeoutcount < 6)
+    while (works == TRUE && timeoutcount < MAX_CONNECTION_ATTEMPT)
     {
+        FD_SET(STDIN_FILENO, &readFd);    // Option standar d'écoute
+        FD_SET(s_socket_ecoute, &readFd); // Lié au socket serveur
+        struct termios oldt, newt;
+        // Ecrit les paramètres de stdin sur old
+        tcgetattr(STDIN_FILENO, &oldt);
+
+        newt = oldt;
+
+        newt.c_lflag &= ~(ICANON | ECHO); // Fait les flags de new comparé à l'opposé de ICANON et ECHO
+
+        // Change les attributs immédiatement
+        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
         if (clientConnect) // On vérifie s'il on est connécté
         {
             FD_SET(s_socket_donnees, &readFd); // Lié au socket client
         }
-        else // On est connecté
+        else // On n'est pas connecté
         {
-            printf("wait\n");
+            printf("%s%s%sConnection failure, attempt %d / %d%s\n",
+                   "\033[1A", "\033[K", "\033[33m", timeoutcount, MAX_CONNECTION_ATTEMPT, "\033[0m");
         }
 
         int rc = select(FD_SETSIZE, &readFd, NULL, NULL, &timeout);
@@ -208,11 +222,12 @@ static void run()
                 if (s_socket_donnees < 0) // Vérification
                 {
                     clientConnect = FALSE;
-                    Server_stop();
                 }
                 else
                 {
                     clientConnect = TRUE;
+                    printf("%s%s%sConnection réussite%s\n",
+                           "\033[1A", "\033[K", "\033[33m", "\033[0m");
                 }
             }
             else if (FD_ISSET(s_socket_donnees, &readFd))
@@ -220,6 +235,8 @@ static void run()
                 readMsg();
             }
         }
+        // On remet les anciens paramètres
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     }
     close(s_socket_donnees);
     printf("Client deconnecté");

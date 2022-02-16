@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <termios.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -58,7 +57,6 @@ static void askMvt(Direction_e p_dir);
 static void ask4Log();
 static void askClearLog();
 static void eraseLog();
-static void quit();
 static void run();
 static void display();
 
@@ -79,6 +77,10 @@ extern void RemoteUI_start()
 
 extern void RemoteUI_stop()
 {
+    printf("\n%sAsk for exit%s\n", "\033[31m", "\033[0m");
+    Data_s l_data;
+    l_data.order = O_STOP;
+    Client_sendMsg(l_data);
     works = FALSE;
 }
 
@@ -127,12 +129,6 @@ static void eraseLog()
     display();
 }
 
-static void quit()
-{
-    printf("\n%sAsk for exit%s\n", "\033[31m", "\033[0m");
-    RemoteUI_stop();
-}
-
 static void capturechoise(char p_char)
 {
     switch (p_char)
@@ -159,7 +155,7 @@ static void capturechoise(char p_char)
         ask4Log();
         break;
     case QUIT_KEY:
-        quit();
+        works = FALSE;
         break;
     default:
         break;
@@ -176,12 +172,12 @@ static void run()
 
     fd_set l_env;
     FD_ZERO(&l_env);
-    FD_SET(STDIN_FILENO, &l_env);
-    FD_SET(s_socketClient, &l_env);
 
     while (works == TRUE)
     {
         struct termios oldt, newt;
+        FD_SET(s_socketClient, &l_env);
+        FD_SET(STDIN_FILENO, &l_env);
 
         // Ecrit les paramètres de stdin sur old
         tcgetattr(STDIN_FILENO, &oldt);
