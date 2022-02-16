@@ -9,36 +9,46 @@
 #include <sys/socket.h>
 #include <string.h>
 
-#include "client.h"
 #include "../../common.h"
 #include "../util.h"
+#include "client.h"
 
-#define MAX_CONNECTION_ATTEMPT 60
+#define MAX_CONNECTION_ATTEMPT (60)
 
-int s_socket;
-struct sockaddr_in s_server_address;
-Data_s data;
+static int socket_ecoute;
+static struct sockaddr_in server_address;
 
+/**
+ * @brief Convert data to Byte order
+ *
+ * @param order The type of order
+ * @param direction The direction in which the robot should go.
+ * @param speed The speed
+ * @param collision Collision sensor status
+ * @param luminosity The luminosity measured
+ *
+ * @return Data_s convert data to Byte order
+ */
 static Data_s convertData(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity);
 
 extern void Client_new()
 {
-    const struct hostent *l_hostInfo = gethostbyname(IP_SERVER);
+    const struct hostent *host = gethostbyname(IP_SERVER);
 
-    if (l_hostInfo == NULL)
+    if (host == NULL)
     {
-        printf("%sUnknown host%s\n", "\033[41m", "\033[0m");
+        printf("%sHôte inconnu%s\n", "\033[41m", "\033[0m");
         Client_stop();
         return;
     }
-    s_server_address.sin_port = htons(PORT_SERVER);
-    s_server_address.sin_family = AF_INET;
-    s_server_address.sin_addr = *((struct in_addr *)l_hostInfo->h_addr_list[0]);
+    server_address.sin_port = htons(PORT_SERVER);
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr = *((struct in_addr *)host->h_addr_list[0]);
 
-    s_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (s_socket < 0)
+    socket_ecoute = socket(AF_INET, SOCK_STREAM, 0);
+    if (socket_ecoute < 0)
     {
-        printf("%sError socket%s\n", "\033[41m", "\033[0m");
+        printf("%sErreur dans le socket%s\n", "\033[41m", "\033[0m");
         Client_stop();
         return;
     }
@@ -47,55 +57,52 @@ extern void Client_new()
 
 extern int *Client_start()
 {
-    int *l_ret = 0;
-    int l_attemptCounter = 0;
+    int timeoutCounter = 0;
 
     printf("%sConnection tent to the server%s\n\n", "\033[34m", "\033[0m");
 
-    while (l_attemptCounter < MAX_CONNECTION_ATTEMPT)
+    while (timeoutCounter < MAX_CONNECTION_ATTEMPT)
     {
-        l_attemptCounter++;
-        if (connect(s_socket, (struct sockaddr *)&s_server_address, sizeof(s_server_address)) < 0)
+        timeoutCounter++;
+        if (connect(socket_ecoute, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
         {
-            printf("%s%s%sConnection failure, attempt %d / %d%s\n",
-                   "\033[1A", "\033[K", "\033[33m", l_attemptCounter, MAX_CONNECTION_ATTEMPT, "\033[0m");
+            printf("%s%s%sÉchec de la connexion, tentative n°%d / %d%s\n", "\033[1A", "\033[K", "\033[33m", timeoutCounter, MAX_CONNECTION_ATTEMPT, "\033[0m");
             sleep(1); // Sleep and retry after
         }
         else
         {
+            printf("%s%s%sConnexion réussite%s\n", "\033[1A", "\033[K", "\033[33m", "\033[0m");
             break;
         }
     }
-
-    l_ret = &s_socket;
-    return l_ret;
+    return &socket_ecoute;
 }
 
 extern void Client_stop()
 {
     TRACE("The client is OFF\n");
-    close(s_socket);
+    close(socket_ecoute);
 }
 
 extern void Client_sendMsg(Data_s data)
 {
     data = convertData(data.order, data.direction, data.speed, data.collision, data.luminosity);
 
-    int l_quantityWritten = 0;
-    int l_quantityToWrite = sizeof(data);
+    int quantityWritten = 0;
+    int quantityToWrite = sizeof(data);
 
-    while (l_quantityToWrite > 0)
+    while (quantityToWrite > 0)
     {
-        l_quantityWritten += write(s_socket, &data, l_quantityToWrite);
+        quantityWritten += write(socket_ecoute, &data, quantityToWrite);
 
-        if (l_quantityWritten < 0)
+        if (quantityWritten < 0)
         {
-            printf("%sError when sending the message%s\n", "\033[41m", "\033[0m");
+            printf("%sErreur lors de l'envoi du message%s\n", "\033[41m", "\033[0m");
             break;
         }
         else
         {
-            l_quantityToWrite -= l_quantityWritten;
+            quantityToWrite -= quantityWritten;
         }
     }
 }
@@ -108,11 +115,11 @@ extern Data_s Client_readMsg()
 
     while (quantityToRead > 0)
     {
-        quantityReaddean = read(s_socket, &data + quantityReaddean, quantityToRead);
+        quantityReaddean = read(socket_ecoute, &data + quantityReaddean, quantityToRead);
 
         if (quantityReaddean < 0)
         {
-            printf("%sError when receiving the message%s\n\n", "\033[41m", "\033[0m");
+            printf("%sErreur lors de la réception du message%s\n", "\033[41m", "\033[0m");
             break;
         }
         else
@@ -124,7 +131,7 @@ extern Data_s Client_readMsg()
     if (quantityToRead == 0)
     {
         data = convertData(data.order, data.direction, data.speed, data.collision, data.luminosity);
-        TRACE("Receive data\n\tDirection: %d\n", data.direction);
+        TRACE("Receive data:\tDirection: %d - Event: %d - Speed: %d - Collision: %d - Luminosity: %d\n\n", data.direction, data.order, data.speed, data.collision, data.luminosity);
     }
 
     return data;

@@ -1,3 +1,11 @@
+/**
+ * @file remoteUI.c
+ *
+ * @see remoteUI.h
+ *
+ * @author Thorkel-dev
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -8,60 +16,84 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 
-#include "remoteUI.h"
 #include "../../common.h"
-#include "client/client.h"
+#include "../client/client.h"
+#include "remoteUI.h"
 
 /**
- * @brief La touche permettant de faire tourner à gauche le robot.
+ * @brief The key for turning the robot to the left
  */
 #define LEFT_KEY 'q'
 
 /**
- * @brief La touche permettant de faire tourner à droite le robot.
+ * @brief The button for turning the robot to the right
  */
 #define RIGHT_KEY 'd'
 
 /**
- * @brief La touche permettant de faire reculer le robot.
+ * @brief The button to move the robot backwards
  */
 #define FORWARD_KEY 'z'
 
 /**
- * @brief La touche permettant de faire avancer le robot.
+ * @brief The button for moving the robot forward
  */
 #define BACK_KEY 's'
 
 /**
- * @brief La touche permettant de stopper le robot.
+ * @brief The button to stop the robot
  */
 #define STOP_KEY ' '
 
 /**
- * @brief La touche permettant de nettoyer le terminal.
+ * @brief The button for cleaning the terminal
  */
 #define ERASE_LOG_KEY 'e'
 
 /**
- * @brief La touche permettant d'afficher l'état du robot.
+ * @brief The button for displaying the status of the robot
  */
 #define DISPLAY_STATE_KEY 'r'
 
 /**
- * @brief La touche permettant de quitter, équivalent à CTRL+C.
+ * @brief The exit key
  */
 #define QUIT_KEY 'a'
 
-static void capturechoise(char p_char);
-static void askMvt(Direction_e p_dir);
-static void ask4Log();
-static void askClearLog();
-static void eraseLog();
-static void run();
+/**
+ * @brief Displays the keys of the remote control
+ */
 static void display();
 
-static bool_e works;
-static int s_socketClient;
+/**
+ * @brief Retrieves the key entered by the user
+ */
+static void capturechoise(char carractere);
+
+/**
+ * @brief Launch the application
+ */
+static void run();
+
+/**
+ * @brief Transmits the direction given to Pilot.
+ *
+ * @param direction the requested direction.
+ */
+static void askMvt(Direction_e p_dir);
+
+/**
+ * @brief Displays the status of the robot
+ */
+static void ask4Log();
+
+/**
+ * @brief Clears text from terminal
+ */
+static void askClearLog();
+
+static bool_e work;
+static int socket_donnees;
 
 extern void RemoteUI_new()
 {
@@ -70,44 +102,44 @@ extern void RemoteUI_new()
 
 extern void RemoteUI_start()
 {
-    s_socketClient = *Client_start();
-    works = TRUE;
+    socket_donnees = *Client_start();
+    work = TRUE;
     run();
 }
 
 extern void RemoteUI_stop()
 {
-    printf("\n%sAsk for exit%s\n", "\033[31m", "\033[0m");
-    Data_s l_data;
-    l_data.order = O_STOP;
-    Client_sendMsg(l_data);
-    works = FALSE;
+    printf("\n%sStop%s\n", "\033[31m", "\033[0m");
+    Data_s data = {0, 0, 0, 0, 0};
+
+    data.order = O_STOP;
+    Client_sendMsg(data);
+    work = FALSE;
 }
 
 static void askMvt(Direction_e p_dir)
 {
     TRACE("Some Moves - Direction is %d\n", p_dir);
 
-    Data_s l_data;
-    l_data.direction = p_dir;
-    l_data.order = O_CHANGE_MVT;
-    Client_sendMsg(l_data);
+    Data_s data = {0, 0, 0, 0, 0};
+    data.direction = p_dir;
+    data.order = O_CHANGE_MVT;
+    Client_sendMsg(data);
 }
 
 static void ask4Log()
 {
     askClearLog();
 
-    printf("Speed calculation, please wait ...\n");
-
-    Data_s l_data;
-    l_data.order = O_ASK_LOG;
-    Client_sendMsg(l_data);
+    Data_s data = {0, 0, 0, 0, 0};
+    data.order = O_ASK_LOG;
+    Client_sendMsg(data);
 }
 
 static void askClearLog()
 {
-    eraseLog();
+    printf("\033c");
+    display();
 }
 
 static void display()
@@ -123,15 +155,9 @@ static void display()
     printf("%c : \033[31mQuitter\033[00m\n\n", QUIT_KEY);
 }
 
-static void eraseLog()
+static void capturechoise(char carractere)
 {
-    printf("\033c");
-    display();
-}
-
-static void capturechoise(char p_char)
-{
-    switch (p_char)
+    switch (carractere)
     {
     case LEFT_KEY:
         askMvt(D_LEFT);
@@ -155,7 +181,7 @@ static void capturechoise(char p_char)
         ask4Log();
         break;
     case QUIT_KEY:
-        works = FALSE;
+        work = FALSE;
         break;
     default:
         break;
@@ -165,59 +191,55 @@ static void capturechoise(char p_char)
 static void run()
 {
 
-    if (works == TRUE)
+    if (work == TRUE)
     {
         askClearLog();
     }
 
-    fd_set l_env;
-    FD_ZERO(&l_env);
+    fd_set writeFd;
+    FD_ZERO(&writeFd); // Initialization of the file descriptor
 
-    while (works == TRUE)
+    while (work == TRUE)
     {
         struct termios oldt, newt;
-        FD_SET(s_socketClient, &l_env);
-        FD_SET(STDIN_FILENO, &l_env);
+        FD_SET(socket_donnees, &writeFd); // Client Socket
+        FD_SET(STDIN_FILENO, &writeFd);   // The terminal
 
-        // Ecrit les paramètres de stdin sur old
+        // Write stdin parameters to old
         tcgetattr(STDIN_FILENO, &oldt);
-
         newt = oldt;
+        newt.c_lflag &= ~(ICANON | ECHO); // Makes the flags of new compared to ICANON and ECHO
 
-        newt.c_lflag &= ~(ICANON | ECHO); // Fait les flags de new comparé à l'opposé de ICANON et ECHO
-
-        // Change les attributs immédiatement
+        // Change the attributes immediately
         tcsetattr(STDIN_FILENO, TCSANOW, &newt);
 
-        if (select(FD_SETSIZE, &l_env, NULL, NULL, NULL) == -1)
+        if (select(FD_SETSIZE, &writeFd, NULL, NULL, NULL) == -1)
         {
-            printf("%sError with %sselect()%s\n", "\033[41m", "\033[21m", "\033[0m");
-            RemoteUI_stop();
-            break;
+            break; // Error
         }
-        // On remet les anciens paramètres
+        // We put back the old parameters
         tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 
-        if (FD_ISSET(STDIN_FILENO, &l_env))
+        if (FD_ISSET(STDIN_FILENO, &writeFd))
         {
-            char l_charInput[2]; // Size 2 for the null character
+            char charInput[2]; // Size 2 for the null character
 
-            if (read(STDIN_FILENO, l_charInput, sizeof(l_charInput)) < 0)
+            if (read(STDIN_FILENO, charInput, sizeof(charInput)) < 0)
             {
-                printf("%sError when readind the input%s\n", "\033[41m", "\033[0m");
+                printf("%sErreur lors de la lecture%s\n", "\033[41m", "\033[0m");
             }
             else
             {
-                capturechoise(l_charInput[0]);
+                capturechoise(charInput[0]);
             }
         }
-        else if (FD_ISSET(s_socketClient, &l_env))
+        else if (FD_ISSET(socket_donnees, &writeFd))
         {
             const Data_s pilotState = Client_readMsg();
 
-            printf("\033[1A\033[K"); // Positionnement du curseur 1 ligne au-dessus et effacement de celle ci
+            printf("\033[1A\033[K"); // Position the cursor 1 line above and delete it
             printf("\nVitesse du robot : %d cm/s\n", pilotState.speed);
-            printf("Collision : %s\033[0m\n", pilotState.collision ? "\033[31mOui" : "\033[32mNon"); // Oui en rouge et Non en vert
+            printf("Collision : %s\033[0m\n", pilotState.collision ? "\033[31mOui" : "\033[32mNon"); // Oui in red and Non in green
             printf("Lumière : %d mV\n", pilotState.luminosity);
         }
     }

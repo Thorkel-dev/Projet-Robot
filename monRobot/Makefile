@@ -28,7 +28,7 @@ export CC = gcc
 export CCFLAGS += -O0
 # avec debuggage : -g -DDEBUG
 # sans debuggage : -DNDEBUG
-export CCFLAGS += -g -DNDEBUG
+export CCFLAGS += -g -DDEBUG
 # gestion automatique des dépendances
 export CCFLAGS += -MMD -MP
 export CCFLAGS += -D_BSD_SOURCE -D_XOPEN_SOURCE_EXTENDED -D_XOPEN_SOURCE -D_DEFAULT_SOURCE -D_GNU_SOURCE

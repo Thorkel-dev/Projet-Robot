@@ -3,7 +3,7 @@
  *
  * @see serveur.h
  *
- * @author Gautier Edouard
+ * @author Thorkel-dev
  */
 
 #include <stdio.h>
@@ -16,76 +16,99 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-#include "server.h"
 #include "../../common.h"
 #include "../pilot/pilot.h"
+#include "server.h"
 
 #define MAX_PENDING (1)
 #define MAX_CONNECTION_ATTEMPT (60)
 
 /**
- * @brief Vitesse par défaut du robot
+ * @brief Default speed of the robot
  */
-#define POWER 100
-
-static int s_socket_ecoute;
-static int s_socket_donnees;
-static struct sockaddr_in s_adresse;
-
-static void sendMsg(PilotState_s pilot);
-static void readMsg();
+#define POWER (100)
 
 /**
- * @brief Convertie de la direction choisie par l'utilisateur en un vecteur vitesse
+ * @brief Returns the status of the pilot to the client
  *
- * @param direction la direction dans laquelle le robot doit aller.
- * @return VelocityVector_s le vector vitesse correspond à la direction où aller.
+ * @param pilot Status of the pilot
+ */
+static void sendMsg(PilotState_s pilot);
+
+/**
+ * @brief Read messages received from the client
+ */
+static void readMsg();
+
+static int socket_ecoute;
+static int socket_donnees;
+static struct sockaddr_in adresse;
+
+/**
+ * @brief Convert the direction chosen by the user into a velocity vector
+ *
+ * @param direction The direction in which the robot should go
+ * @return VelocityVector_s corresponds to the direction and speed where to go
  */
 static VelocityVector_s translate(const Direction_e direction);
+
+/**
+ * @brief Convert data to Byte order
+ *
+ * @param order The type of order
+ * @param direction The direction in which the robot should go.
+ * @param speed The speed
+ * @param collision Collision sensor status
+ * @param luminosity The luminosity measured
+ *
+ * @return Data_s convert data to Byte order
+ */
 static Data_s convertData(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity);
+
+/**
+ * @brief Allows the server to run after it is launched
+ */
 static void run();
 
-static bool_e works;
+static bool_e work;
 static VelocityVector_s vectorDefault = {D_STOP, 0};
 struct timeval timeout = {1, 0};
 
-extern void
-Server_new()
+extern void Server_new()
 {
-    TRACE("Le serveur est crée\n");
-    s_socket_ecoute = socket(AF_INET, SOCK_STREAM, 0);
-    if (s_socket_ecoute == -1)
+    TRACE("The server is created\n");
+    socket_ecoute = socket(AF_INET, SOCK_STREAM, 0);
+    if (socket_ecoute == -1)
     {
         perror("Erreur dans la création du socket");
-        exit(s_socket_ecoute);
+        exit(socket_ecoute);
     }
-    s_adresse.sin_family = AF_INET;
-    s_adresse.sin_port = htons(PORT_SERVER);
-    s_adresse.sin_addr.s_addr = htonl(INADDR_ANY);
+    adresse.sin_family = AF_INET;
+    adresse.sin_port = htons(PORT_SERVER);
+    adresse.sin_addr.s_addr = htonl(INADDR_ANY);
     Pilot_new();
 }
 
 extern void Server_start()
 {
-    printf("%sLe serveur est sur le port %d à l'adresse %s%s\n\n",
-           "\033[32m", PORT_SERVER, IP_SERVER, "\033[0m");
-    bind(s_socket_ecoute, (struct sockaddr *)&s_adresse, sizeof(s_adresse));
+    printf("%sLe serveur est sur le port %d à l'adresse %s%s\n\n", "\033[32m", PORT_SERVER, IP_SERVER, "\033[0m");
+    bind(socket_ecoute, (struct sockaddr *)&adresse, sizeof(adresse));
 
-    if (listen(s_socket_ecoute, MAX_PENDING) != 0)
+    if (listen(socket_ecoute, MAX_PENDING) != 0)
     {
         printf("%sErreur durant l'écoute du port%s\n", "\033[41m", "\033[0m");
         Server_stop();
         return;
     }
     Pilot_start();
-    works = TRUE;
+    work = TRUE;
     run();
 }
 
 extern void Server_stop()
 {
-    TRACE("Le serveur est arrété\n");
-    close(s_socket_ecoute);
+    printf("%sLe serveur est arrêté%s\n", "\033[31m", "\033[0m");
+    close(socket_ecoute);
 }
 
 static void sendMsg(const PilotState_s pilot)
@@ -96,11 +119,11 @@ static void sendMsg(const PilotState_s pilot)
 
     while (quantityToWrite > 0)
     {
-        quantityWritten = write(s_socket_donnees, &data + quantityWritten, quantityToWrite);
+        quantityWritten = write(socket_donnees, &data + quantityWritten, quantityToWrite);
 
         if (quantityWritten < 0)
         {
-            printf("%sError when sending the message%s\n", "\033[41m", "\033[0m");
+            printf("%sErreur lors de l'envoi du message%s\n", "\033[41m", "\033[0m");
             break;
         }
         else
@@ -108,7 +131,7 @@ static void sendMsg(const PilotState_s pilot)
             quantityToWrite -= quantityWritten;
         }
     }
-    TRACE("Server send message\n");
+    TRACE("Send data:\tDirection: %d - Event: %d - Speed: %d - Collision: %d - Luminosity: %d\n", data.direction, data.order, data.speed, data.collision, data.luminosity);
 }
 
 static void readMsg()
@@ -119,11 +142,11 @@ static void readMsg()
 
     while (quantityToRead > 0)
     {
-        quantityReaddean = read(s_socket_donnees, &data + quantityReaddean, quantityToRead);
+        quantityReaddean = read(socket_donnees, &data + quantityReaddean, quantityToRead);
 
         if (quantityReaddean < 0)
         {
-            printf("%sError when receiving the message%s\n", "\033[41m", "\033[0m");
+            printf("%sErreur lors de la réception du message%s\n", "\033[41m", "\033[0m");
             break;
         }
         else
@@ -135,7 +158,7 @@ static void readMsg()
     if (quantityToRead == 0)
     {
         data = convertData(data.order, data.direction, 0, 0, 0);
-        TRACE("Receive data:\n\tDirection: %d\n\tEvent:%d\n", data.direction, data.order);
+        TRACE("Receive data:\tDirection: %d - Event: %d\n", data.direction, data.order);
         if (data.order == O_ASK_LOG)
         {
             sendMsg(Pilot_getState());
@@ -146,7 +169,7 @@ static void readMsg()
         }
         else
         {
-            works = FALSE;
+            work = FALSE;
             Pilot_stop(vectorDefault);
             Pilot_free();
         }
@@ -173,71 +196,69 @@ static Data_s convertData(const Order_e order, const Direction_e direction, cons
 static void run()
 {
     bool_e clientConnect = FALSE;
-    int timeoutcount = 0;
+    int timeoutCount = 0;
     fd_set readFd;
-    FD_ZERO(&readFd); // Initialisation
+    FD_ZERO(&readFd); // Initialization of the file descriptor
 
-    while (works == TRUE && timeoutcount < MAX_CONNECTION_ATTEMPT)
+    while (work == TRUE && timeoutCount < MAX_CONNECTION_ATTEMPT)
     {
-        FD_SET(STDIN_FILENO, &readFd);    // Option standar d'écoute
-        FD_SET(s_socket_ecoute, &readFd); // Lié au socket serveur
+        FD_SET(STDIN_FILENO, &readFd);  // The terminal
+        FD_SET(socket_ecoute, &readFd); // Server Socket
+
         struct termios oldt, newt;
-        // Ecrit les paramètres de stdin sur old
+        // Write stdin parameters to old
         tcgetattr(STDIN_FILENO, &oldt);
-
         newt = oldt;
+        newt.c_lflag &= ~(ICANON | ECHO); // Makes the flags of new compared to ICANON and ECHO
 
-        newt.c_lflag &= ~(ICANON | ECHO); // Fait les flags de new comparé à l'opposé de ICANON et ECHO
-
-        // Change les attributs immédiatement
+        // Change the attributes immediately
         tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-        if (clientConnect) // On vérifie s'il on est connécté
+
+        if (clientConnect) // We check if we are connected
         {
-            FD_SET(s_socket_donnees, &readFd); // Lié au socket client
+            FD_SET(socket_donnees, &readFd); // Client socket
         }
-        else // On n'est pas connecté
+        else // We are not connected
         {
-            printf("%s%s%sConnection failure, attempt %d / %d%s\n",
-                   "\033[1A", "\033[K", "\033[33m", timeoutcount, MAX_CONNECTION_ATTEMPT, "\033[0m");
+            printf("%s%s%sÉchec de la connexion, tentative n°%d / %d%s\n", "\033[1A", "\033[K", "\033[33m", timeoutCount, MAX_CONNECTION_ATTEMPT, "\033[0m");
         }
 
         int rc = select(FD_SETSIZE, &readFd, NULL, NULL, &timeout);
-        // On surveille un descripteur
+        // We monitor a descriptor
         if (rc == -1)
         {
-            break; // erreur
+            break; // Error
         }
         else if (rc == 0)
         {
-            timeoutcount++;
+            timeoutCount++;
         }
         else
         {
-            timeoutcount = 0;
-            // On vérifie si les descripteurs sont présent
-            if (FD_ISSET(s_socket_ecoute, &readFd))
+            timeoutCount = 0;
+            // We check if the descriptors are present
+            if (FD_ISSET(socket_ecoute, &readFd))
             {
-                s_socket_donnees = accept(s_socket_ecoute, NULL, 0); // Connection
+                socket_donnees = accept(socket_ecoute, NULL, 0); // Connection
 
-                if (s_socket_donnees < 0) // Vérification
+                if (socket_donnees < 0) // Verification
                 {
                     clientConnect = FALSE;
                 }
                 else
                 {
                     clientConnect = TRUE;
-                    printf("%s%s%sConnection réussite%s\n",
-                           "\033[1A", "\033[K", "\033[33m", "\033[0m");
+                    printf("%s%s%sConnexion réussite%s\n", "\033[1A", "\033[K", "\033[33m", "\033[0m");
                 }
             }
-            else if (FD_ISSET(s_socket_donnees, &readFd))
+            else if (FD_ISSET(socket_donnees, &readFd))
             {
                 readMsg();
             }
         }
-        // On remet les anciens paramètres
+        // We put back the old parameters
         tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     }
-    close(s_socket_donnees);
-    printf("Client deconnecté");
+    close(socket_donnees);
+    printf("%sClient déconnecté%s\n", "\033[31m", "\033[0m");
 }
