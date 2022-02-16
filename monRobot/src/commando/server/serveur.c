@@ -19,7 +19,6 @@
 #include "server.h"
 #include "../../common.h"
 #include "../pilot/pilot.h"
-#include "../util.h"
 
 #define MAX_PENDING (1)
 
@@ -32,7 +31,7 @@ static int s_socket_ecoute;
 static int s_socket_donnees;
 static struct sockaddr_in s_adresse;
 
-static void sendMsg(PilotState_s data);
+static void sendMsg(PilotState_s pilot);
 static void readMsg();
 
 /**
@@ -42,17 +41,17 @@ static void readMsg();
  * @return VelocityVector_s le vector vitesse correspond à la direction où aller.
  */
 static VelocityVector_s translate(const Direction_e direction);
-
+static Data_s convertData(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity);
 static void run();
 
 static bool_e works;
-static VelocityVector_s vectorDefault = {STOP, 0};
-struct timeval timeout = {1, 0};
+static VelocityVector_s vectorDefault = {D_STOP, 0};
+struct timeval timeout = {10, 0};
 
 extern void
 Server_new()
 {
-    TRACE("%s%sLe serveur est crée%s\n\n", "\033[44m", "\033[37m", "\033[0m");
+    TRACE("Le serveur est crée\n");
     s_socket_ecoute = socket(AF_INET, SOCK_STREAM, 0);
     if (s_socket_ecoute == -1)
     {
@@ -85,20 +84,18 @@ extern void Server_start()
 
 extern void Server_stop()
 {
-    TRACE("%sLe serveur est arrété%s\n", "\033[31m", "\033[0m");
-    Pilot_setVelocity(vectorDefault);
+    TRACE("Le serveur est arrété\n");
     works = FALSE;
+    Pilot_setVelocity(vectorDefault);
     close(s_socket_ecoute);
     Pilot_free();
 }
 
-static void sendMsg(PilotState_s data)
+static void sendMsg(const PilotState_s pilot)
 {
-    data.collision = htonl(data.collision);
-    data.luminosity = htonl(data.luminosity);
-    data.speed = htonl(data.speed);
+    Data_s data = convertData(0, 0, pilot.speed, pilot.collision, pilot.luminosity);
     int quantityWritten = 0;
-    int quantityToWrite = sizeof(data);
+    int quantityToWrite = sizeof(pilot);
 
     while (quantityToWrite > 0)
     {
@@ -111,11 +108,10 @@ static void sendMsg(PilotState_s data)
         }
         else
         {
-            TRACE("Not all the message has been sent%s", "\n");
             quantityToWrite -= quantityWritten;
         }
     }
-    TRACE("%sServer send message%s\n", "\033[36m", "\033[0m");
+    TRACE("Server send message\n");
 }
 
 static void readMsg()
@@ -135,16 +131,15 @@ static void readMsg()
         }
         else
         {
-            TRACE("Not all the message has been read\n");
             quantityToRead -= quantityReaddean;
         }
     }
+
     if (quantityToRead == 0)
     {
-        data.direction = ntohl(data.direction);
-        data.event = ntohl(data.event);
-        TRACE("Receive data:%d\n\tDirection: %d\n\tEvent: %s\n\n", data.direction, data.event);
-        if (data.event == O_ASK_LOG)
+        data = convertData(data.order, data.direction, 0, 0, 0);
+        TRACE("Receive data:\n\tDirection: %d\n\tEvent:%d\n", data.direction, data.order);
+        if (data.order == O_ASK_LOG)
         {
             sendMsg(Pilot_getState());
         }
@@ -155,10 +150,21 @@ static void readMsg()
     }
 }
 
-VelocityVector_s translate(const Direction_e direction)
+static VelocityVector_s translate(const Direction_e direction)
 {
     VelocityVector_s velocityVector = {direction, POWER};
     return velocityVector;
+}
+
+static Data_s convertData(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity)
+{
+    Data_s data;
+    data.direction = ntohl(direction);
+    data.order = ntohl(order);
+    data.collision = ntohl(collision);
+    data.luminosity = ntohl(luminosity);
+    data.speed = ntohl(speed);
+    return data;
 }
 
 static void run()

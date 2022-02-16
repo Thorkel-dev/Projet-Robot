@@ -3,13 +3,15 @@
 #include <signal.h>
 
 #include "../common.h"
-#include "server/server.h"
+#include "client/client.h"
+#include "remoteUI/remoteUI.h"
 
 int main(int argc, char *argv[])
 {
     printf("\033c");
-    Server_new();
-    Server_start();
-    Server_stop();
+    RemoteUI_new();
+    RemoteUI_start();
+    RemoteUI_stop();
+
     return EXIT_SUCCESS;
 }

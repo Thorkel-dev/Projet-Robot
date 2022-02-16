@@ -43,16 +43,6 @@ typedef struct
     int power;
 } VelocityVector_s;
 
-/**
- * @brief Structure de l'état du robot
- */
-typedef struct
-{
-    int speed;
-    bool_e collision;
-    int luminosity;
-} PilotState_s;
-
 typedef struct
 {
     void (*start)();

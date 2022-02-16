@@ -50,13 +50,16 @@ export LDFLAGS += -L$(INTOXDIR)/lib/ -linfox
 # Compilation récursive.
 all: 
 	@for i in $(SUBDIRS_COMMANDO); do (cd $$i; make $@); done
+	@for i in $(SUBDIRS_TELCO); do (cd $$i; make $@); done
 
 # Nettoyage.
 .PHONY: clean
 
 clean:
 	@for i in $(SUBDIRS_COMMANDO); do (cd $$i; make $@); done
+	@for i in $(SUBDIRS_TELCO); do (cd $$i; make $@); done
 	@rm -f $(PROG_COMMANDO) core* $(BINDIR)/core*
+	@rm -f $(PROG_TELCO) core* $(BINDIR)/core*
 	@rm -rf $(CHECK_DIR)
 
 check:

@@ -91,7 +91,7 @@ static void run(Event_e event, VelocityVector_s vector);
 
 static PilotState_s *p_S_pilot = 0;
 static State_e S_currentState;
-static VelocityVector_s vectorDefault = {STOP, 0};
+static VelocityVector_s vectorDefault = {D_STOP, 0};
 
 typedef void (*action_p)();
 static const action_p a_S_actionTab[A_NB_ACTION] = {&Pilot_check, &checkVector, &Pilot_stop, &sendMvt};
@@ -155,16 +155,16 @@ static void sendMvt(VelocityVector_s vector)
 {
     switch (vector.dir)
     {
-    case FORWARD:
+    case D_FORWARD:
         Robot_setWheelsVelocity(vector.power, vector.power);
         break;
-    case BACKWARD:
+    case D_BACKWARD:
         Robot_setWheelsVelocity(-vector.power, -vector.power);
         break;
-    case LEFT:
+    case D_LEFT:
         Robot_setWheelsVelocity(vector.power, -vector.power);
         break;
-    case RIGHT:
+    case D_RIGHT:
         Robot_setWheelsVelocity(-vector.power, vector.power);
         break;
     default:
@@ -175,7 +175,7 @@ static void sendMvt(VelocityVector_s vector)
 
 static void checkVector(VelocityVector_s vector)
 {
-    if (vector.dir == STOP)
+    if (vector.dir == D_STOP)
     {
         run(E_STOP, vectorDefault);
     }

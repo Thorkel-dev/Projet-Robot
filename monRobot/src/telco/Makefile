@@ -1,15 +1,9 @@
 #
-# Hello Robot C - Makefile des sources du projet.
-#
-# @author Matthias Brun
-#
-
-#
 # Organisation des sources.
 #
 
 # Packages du projet (à compléter si besoin est).
-PACKAGES = client
+PACKAGES = client remoteUI
 
 # Un niveau de package est accessible.
 SRC  = $(wildcard */*.c)
@@ -19,17 +13,16 @@ SRC  = $(wildcard */*.c)
 OBJ = $(SRC:.c=.o)
 
 # Point d'entrée du programme.
-MAIN = main.c
+MAIN = telco.c
 
 # Gestion automatique des dépendances.
 DEP = $(MAIN:.c=.d)
 
 # Exécutable à générer.
-EXEC = ../$(PROG)
+EXEC = ../$(PROG_TELCO)
 
 # Inclusion depuis le niveau du package.
 CCFLAGS += -I.
-LDFLAGS += -lm
 
 #
 # Règles du Makefile.
@@ -37,7 +30,7 @@ LDFLAGS += -lm
 
 # Compilation.
 all:
-	@for p in $(PACKAGES); do (cd $$p; $(MAKE) $@); done
+	for p in $(PACKAGES); do (cd $$p; $(MAKE) $@); done
 	@$(MAKE) CCFLAGS="$(CCFLAGS)" LDFLAGS="$(LDFLAGS)" $(EXEC)
 
 $(EXEC): $(OBJ) $(MAIN)
@@ -51,4 +44,3 @@ clean:
 	@rm -f $(DEP)
 
 -include $(DEP)
-

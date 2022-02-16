@@ -7,9 +7,9 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
 
 #include "robot.h"
+#include "../../common.h"
 
 #define ROBOT_CMD_STOP 0
 
@@ -124,7 +124,7 @@ extern void Robot_setWheelsVelocity(int vr, int vl)
 
 extern int Robot_getRobotSpeed()
 {
-	return abs(Motor_getCmd(p_S_robot->mG) + Motor_getCmd(p_S_robot->mD)) / 2;
+	return (Motor_getCmd(p_S_robot->mG) + Motor_getCmd(p_S_robot->mD)) / 2;
 }
 
 extern SensorState_s Robot_getSensorState()
