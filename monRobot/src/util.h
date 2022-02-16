@@ -15,7 +15,7 @@
 #include <stdint.h>
 
 #ifndef NDEBUG
-#define TRACE(fmt, ...) do {fprintf(stderr, "%s:%d:%s(): " fmt, __FILE__, __LINE__, __func__, ##__VA_ARGS__); fflush (stderr); } while(0);    
+#define TRACE(fmt, ...) do {fprintf(stderr, "\033[K\033[41m\033[37m%s:%d:%s(): \033[0m" fmt, __FILE__, __LINE__, __func__, ##__VA_ARGS__); fflush (stderr); } while(0);    
 #define ASSERT_PRINTERROR(assertion) do {if (!(assertion)) {perror("Erreur"); assert(assertion);} } while(0);    
 #define STOP_ON_ERROR(error_condition) do {     \
 	if(error_condition) { \

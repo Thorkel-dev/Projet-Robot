@@ -1,16 +1,16 @@
 /**
- * @file  adminUI.h
+ * @file  remoteUI.h
  *
- * @brief  This component describe the admin user interface. It captures the user's controls and send them to the pilot module.
+ * @brief  description
  *
- * @author Edouard Gautier
- * @date 28-01-2022
- * @version 1
+ * @author Thorkel-dev
+ * @date 16-02-2022
+ * @version version 1
  * @section License
  *
  * The MIT License
  *
- * Copyright (c) 2016, Jerome Delatour
+ * Copyright (c) 2022, Thorkel-dev
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,34 +32,22 @@
  *
  */
 
-#ifndef ADMINUI_H_
-#define ADMINUI_H_
-
-#include "prose.h"
-#include "pilot.h"
+#ifndef _REMOTE_UI_
+#define _REMOTE_UI_
 
 /**
- * @brief Déclenche la création des instances des moteurs et des capteurs d'obstacle
- * @see Pilot_new()
+ * @brief Initializes the interface and the client
  */
-extern void AdminUI_new(void);
+extern void RemoteUI_new();
 
 /**
- * @brief Déclenche de la destruction des instances des moteurs et des capteurs d'obstacle
- * @see Pilot_free()
+ * @brief Start the interface and the client
  */
-extern void AdminUI_free(void);
+extern void RemoteUI_start();
 
 /**
- * @brief Déclenche la mise en fonctionnement du robot et des capteurs d'obstacle
- * @see Pilot_start()
+ * @brief Stopping interface et client
  */
-extern void AdminUI_start(void);
+extern void RemoteUI_stop();
 
-/**
- * @brief Déclenche l'arrêt du robot et de la scrutation des obstacles
- * @see Pilot_stop()
- */
-extern void AdminUI_stop(void);
-
-#endif
+#endif // _REMOTE_UI_

@@ -1,27 +1,20 @@
-#
-# Robot v1 C - Makefile principal.
-# 
-# @author Matthias Brun, adapté par Jérôme Delatour
-#
-
 # Répertoire d'installation de la librairie Infox
-# pour la compilation avec le simulateur Intox 
-# TODO (à adapter) :
-# INTOXDIR = $(realpath /<path>/<to>/infox_prose-<arch>-v0.3
-# Exemple :
-# Attention : pas d'espace ou d'accent dans votre chemin
-# sinon passer par realpath ne fonctionne pas
+# pour la compilation avec le simulateur Intox
 INTOXDIR = $(realpath ../infox_prose-x86_64-v0.3/)
 
 
 # Organisation des sources.
 #
 
-export SRCDIR = src
-export BINDIR = bin
+export SUBDIRS_TELCO = src/telco
+export SUBDIRS_COMMANDO = src/commando
+export BINDIR = ../bin
 export CHECK_DIR = report
-
-SUBDIRS = $(SRCDIR)
+#
+# Définitions du binaire à générer.
+#
+export PROG_TELCO = $(BINDIR)/telco
+export PROG_COMMANDO = $(BINDIR)/commando
 
 #
 # Définitions des outils.
@@ -35,7 +28,7 @@ export CC = gcc
 export CCFLAGS += -O0
 # avec debuggage : -g -DDEBUG
 # sans debuggage : -DNDEBUG
-export CCFLAGS += -g -DNDEBUG
+export CCFLAGS += -g -DDEBUG
 # gestion automatique des dépendances
 export CCFLAGS += -MMD -MP
 export CCFLAGS += -D_BSD_SOURCE -D_XOPEN_SOURCE_EXTENDED -D_XOPEN_SOURCE -D_DEFAULT_SOURCE -D_GNU_SOURCE
@@ -49,10 +42,6 @@ export CCFLAGS += -DINTOX
 export CCFLAGS += -I$(INTOXDIR)/include/infox/prose/
 export LDFLAGS += -L$(INTOXDIR)/lib/ -linfox
 
-#
-# Définitions du binaire à générer.
-#
-export PROG = $(BINDIR)/robot_pc
 
 #
 # Règles du Makefile.
@@ -60,14 +49,17 @@ export PROG = $(BINDIR)/robot_pc
 
 # Compilation récursive.
 all: 
-	@for i in $(SUBDIRS); do (cd $$i; make $@); done
+	@for i in $(SUBDIRS_COMMANDO); do (cd $$i; make $@); done
+	@for i in $(SUBDIRS_TELCO); do (cd $$i; make $@); done
 
 # Nettoyage.
 .PHONY: clean
 
 clean:
-	@for i in $(SUBDIRS); do (cd $$i; make $@); done
-	@rm -f $(PROG) core* $(BINDIR)/core*
+	@for i in $(SUBDIRS_COMMANDO); do (cd $$i; make $@); done
+	@for i in $(SUBDIRS_TELCO); do (cd $$i; make $@); done
+	@rm -f $(PROG_COMMANDO) core* $(BINDIR)/core*
+	@rm -f $(PROG_TELCO) core* $(BINDIR)/core*
 	@rm -rf $(CHECK_DIR)
 
 check:

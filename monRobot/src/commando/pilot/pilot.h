@@ -1,16 +1,16 @@
 /**
- * @file  robot.h
+ * @file  pilot.h
  *
  * @brief  description
  *
- * @author Edouard Gautier
+ * @author Thorkel-dev
  * @date 28-01-2022
  * @version version 1
  * @section License
  *
  * The MIT License
  *
- * Copyright (c) 2016, Gautier Edouard
+ * Copyright (c) 2022, Thorkel-dev
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,32 +35,13 @@
 #ifndef PILOT_H
 #define PILOT_H
 
-#include "prose.h"
-
-typedef enum
-{
-    LEFT = 0,
-    RIGHT,
-    FORWARD,
-    BACKWARD,
-    STOP
-} Direction_e;
+#include "../../common.h"
 
 typedef struct
 {
     Direction_e dir;
     int power;
 } VelocityVector_s;
-
-/**
- * @brief Structure de l'état du robot
- */
-typedef struct
-{
-    int speed;
-    bool_e collision;
-    int luminosity;
-} PilotState_s;
 
 typedef struct
 {
@@ -74,41 +55,45 @@ typedef struct
 } PilotControle_s;
 
 /**
- * @brief Initialise le pilot en mémoire
+ * @brief Initialize the pilot in memory
  */
 extern void Pilot_new();
 
 /**
- * destruct l'object Pilot en mémoire
+ * @brief Destruct the Pilot object in memory
  */
 extern void Pilot_free();
 
 /**
- * @brief Démarrer mon pilot (vitesses moteurs à zéro).
+ * @brief Start pilot (engine speeds at zero)
  */
 extern void Pilot_start();
 
 /**
- * @brief Arrête mon pilot et mon robot (vitesses moteurs à zéro).
+ * @brief Stop pilot and robot (motor speeds at zero)
+ *
+ * @param vector Speed vector (Not taken into consideration)
  */
 extern void Pilot_stop(VelocityVector_s vector);
 
 /**
- * @brief Applique les consignes de vitesse et de direction
+ * @brief Applies speed and directional instructions
  *
- * @param vel Vecteur vitesse
+ * @param vector Speed vector
  */
-extern void Pilot_setVelocity(VelocityVector_s vel);
+extern void Pilot_setVelocity(VelocityVector_s vector);
 
 /**
- * @brief Donne l'état général du pilot
+ * @brief Gives the general state of the pilot
  *
- * @return PilotState_s l'état du pilot
+ * @return PilotState_s the state of the pilot
  */
 extern PilotState_s Pilot_getState();
 
 /**
- * @brief Vérifie si le pilot peut bouger, sinon l'arrête
+ * @brief Check if the pilot can move, if not stop it
+ *
+ * @param vector Speed vector (Not taken into consideration)
  */
 extern void Pilot_check(VelocityVector_s vector);
 

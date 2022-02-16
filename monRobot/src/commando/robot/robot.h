@@ -3,14 +3,14 @@
  *
  * @brief  description
  *
- * @author Edouard Gautier
+ * @author Thorkel-dev
  * @date 28-01-2022
  * @version version 1
  * @section License
  *
  * The MIT License
  *
- * Copyright (c) 2016, Gautier Edouard
+ * Copyright (c) 2022, Thorkel-dev
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@
 
 #include "prose.h"
 
-// Pins des moteurs et capteurs
+// Motor and sensor pins
 #define LEFT_MOTOR MD
 #define RIGHT_MOTOR MA
 #define LIGHT_SENSOR S1
@@ -45,11 +45,9 @@
 #define FLOOR_SENSOR S2
 
 /**
- * @brief Robot
- *
- * Un robot muni de deux moteurs et de capteurs
+ * @brief A robot with two motors and sensors
  */
-typedef struct
+typedef struct Robot
 {
 	Motor *mD;					// Le moteur droit
 	Motor *mG;					// Le moteur gauche
@@ -58,14 +56,17 @@ typedef struct
 	LightSensor *light;			// Capteur de luminosité
 } Robot_s;
 
-typedef enum
+/**
+ * @brief Gives the status of the collision sensors
+ */
+typedef enum Collision
 {
-	NO_BUMP = 0, // Pas de contact
+	NO_BUMP = 0, // No contact
 	BUMPED		 // Contact
-} Collision_e;
+} Collision_e;	 // TODO Add enum to differentiate collision sensors
 
 /**
- * Les états des capteurs du robot
+ * The robot's sensor states
  */
 typedef struct
 {
@@ -74,46 +75,46 @@ typedef struct
 } SensorState_s;
 
 /**
- * @brief Initialise le robot ainsi que la connexion
+ * @brief Initializes the robot and the connection
  *
- *  @return Robot * Pointeur vers le robot
+ *  @return Robot * Pointer to the robot
  */
 extern Robot_s *Robot_new();
 
 /**
- *  @brief Detruit l'objet Robot en mémoire
+ *  @brief Destroy the Robot object in memory
  */
 extern void Robot_free();
 
 /**
- * @brief Démarre le Robot (initialise la communication et ouvre les pins)
+ * @brief Starts the robot (initializes the communication and opens the pins)
  */
 extern void Robot_start();
 
 /**
- * @brief Arrêt de mon robot (vitesses moteurs à zéro).
+ * @brief Stopping robot (motor speeds at zero)
  */
 extern void Robot_stop();
 
 /**
- * @brief Applique la vitesse des moteurs
+ * @brief Applies the speed of the motors
  *
- * @param vr vitesse du moteur droit
- * @param vl vitesse du moteur gauche
+ * @param vr Right motor speed
+ * @param vl Left motor speed
  */
 extern void Robot_setWheelsVelocity(int vr, int vl);
 
 /**
- * @brief Retourne la vitesse du robot (moyenne positive de la vitesse des moteurs)
+ * @brief Returns the robot speed (positive average of the motors speed)
  *
- * @return Vitesse du robot (entre 0 et 100)
+ * @return Robot speed (between 0 and 100)
  */
 extern int Robot_getRobotSpeed();
 
 /**
- * @brief Retourne l'état des capteurs
+ * @brief Returns the status of the sensors
  *
- * @return SensorState état des capteurs
+ * @return SensorState sensor status
  */
 extern SensorState_s Robot_getSensorState();
 

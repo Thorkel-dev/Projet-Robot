@@ -3,7 +3,7 @@
  *
  * @see pilot.h
  *
- * @author Gautier Edouard
+ * @author Thorkel-dev
  */
 #include <string.h>
 #include <stdio.h>
@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 #include "pilot.h"
-#include "robot.h"
+#include "../robot/robot.h"
 
 typedef enum State
 {
@@ -46,7 +46,7 @@ typedef struct Transition
     Action_e action;
 } Transition_s;
 
-static Transition_s a_S_stateMachine[S_NB_STATE][E_NB_EVENT] =
+static Transition_s a_stateMachine[S_NB_STATE][E_NB_EVENT] =
     {
         [S_IDLE][E_ASK_LOG] = {S_IDLE, A_SHOW_LOG},
         [S_RUNNING][E_ASK_LOG] = {S_RUNNING, A_SHOW_LOG},
@@ -62,43 +62,43 @@ static Transition_s a_S_stateMachine[S_NB_STATE][E_NB_EVENT] =
 };
 
 /**
- * @brief Vérifie s'il y a un contact sur les capteurs
+ * @brief Checks if there is a contact on the sensors
  *
- * @return TRUE s'il y a un contact, sinon FALSE
+ * @return TRUE if there is a contact, otherwise FALSE
  */
 static bool_e hasBumped();
 
 /**
- * @brief Convertit le vecteur vitesse en cosigne pour le robot
+ * @brief Convert the velocity vector into a cosign for the robot
  *
- * @param vector Vecteur vitesse
+ * @param vector Speed vector
  */
 static void sendMvt(VelocityVector_s vector);
 
 /**
- * @brief Vérifie si notre vecteur permet au robot d'avancer
+ * @brief Check if our vector allows the robot to move forward
  *
- * @param vector Vecteur vitesse
+ * @param vector Speed vector
  */
 static void checkVector(VelocityVector_s vector);
 
 /**
- * @brief Machine à état de notre pilot
+ * @brief State machine of our pilot
  *
- * @param vector Vecteur vitesse
+ * @param vector Speed vector
  */
 static void run(Event_e event, VelocityVector_s vector);
 
-static PilotState_s *p_S_pilot = 0;
-static State_e S_currentState;
-static VelocityVector_s vectorDefault = {STOP, 0};
+static PilotState_s *p_pilot = 0;
+static State_e currentState;
+static VelocityVector_s vectorDefault = {D_STOP, 0};
 
 typedef void (*action_p)();
-static const action_p a_S_actionTab[A_NB_ACTION] = {&Pilot_check, &checkVector, &Pilot_stop, &sendMvt};
+static const action_p a_actionTab[A_NB_ACTION] = {&Pilot_check, &checkVector, &Pilot_stop, &sendMvt};
 
 extern void Pilot_new()
 {
-    p_S_pilot = (PilotState_s *)malloc(sizeof(PilotState_s));
+    p_pilot = (PilotState_s *)malloc(sizeof(PilotState_s));
 }
 
 extern void Pilot_free()
@@ -109,13 +109,13 @@ extern void Pilot_free()
 extern void Pilot_start()
 {
     Robot_start();
-    S_currentState = S_IDLE;
+    currentState = S_IDLE;
 }
 
 extern void Pilot_stop(VelocityVector_s vector)
 {
     Robot_stop();
-    S_currentState = S_IDLE;
+    currentState = S_IDLE;
 }
 
 extern void Pilot_setVelocity(VelocityVector_s vector)
@@ -125,19 +125,19 @@ extern void Pilot_setVelocity(VelocityVector_s vector)
 
 extern PilotState_s Pilot_getState()
 {
-    p_S_pilot->collision = hasBumped();
-    p_S_pilot->luminosity = Robot_getSensorState().luminosity;
-    p_S_pilot->speed = Robot_getRobotSpeed();
+    p_pilot->collision = hasBumped();
+    p_pilot->luminosity = Robot_getSensorState().luminosity;
+    p_pilot->speed = Robot_getRobotSpeed();
     run(E_ASK_LOG, vectorDefault);
 
-    return *p_S_pilot;
+    return *p_pilot;
 }
 
 extern void Pilot_check(VelocityVector_s vector)
 {
     if (!hasBumped())
     {
-        S_currentState = S_RUNNING;
+        currentState = S_RUNNING;
     }
     else
     {
@@ -155,17 +155,17 @@ static void sendMvt(VelocityVector_s vector)
 {
     switch (vector.dir)
     {
-    case FORWARD:
+    case D_FORWARD:
         Robot_setWheelsVelocity(vector.power, vector.power);
         break;
-    case BACKWARD:
+    case D_BACKWARD:
         Robot_setWheelsVelocity(-vector.power, -vector.power);
         break;
-    case LEFT:
-        Robot_setWheelsVelocity(vector.power, -vector.power);
-        break;
-    case RIGHT:
+    case D_LEFT:
         Robot_setWheelsVelocity(-vector.power, vector.power);
+        break;
+    case D_RIGHT:
+        Robot_setWheelsVelocity(vector.power, -vector.power);
         break;
     default:
         run(E_STOP, vectorDefault);
@@ -175,7 +175,7 @@ static void sendMvt(VelocityVector_s vector)
 
 static void checkVector(VelocityVector_s vector)
 {
-    if (vector.dir == STOP)
+    if (vector.dir == D_STOP)
     {
         run(E_STOP, vectorDefault);
     }
@@ -184,14 +184,15 @@ static void checkVector(VelocityVector_s vector)
         run(E_CHANGE_MVT, vector);
     }
 }
+
 static void run(Event_e event, VelocityVector_s vector)
 {
-    const Action_e action = a_S_stateMachine[S_currentState][event].action;
-    const State_e stateNext = a_S_stateMachine[S_currentState][event].stateNext;
+    const Action_e action = a_stateMachine[currentState][event].action;
+    const State_e stateNext = a_stateMachine[currentState][event].stateNext;
 
     if (stateNext != S_NONE)
     {
-        S_currentState = stateNext;
-        a_S_actionTab[action](vector);
+        currentState = stateNext;
+        a_actionTab[action](vector);
     }
 }
