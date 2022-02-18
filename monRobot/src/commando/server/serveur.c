@@ -136,7 +136,7 @@ static void sendMsg(const PilotState_s pilot)
 
 static void readMsg()
 {
-    Data_s data;
+    Data_s data = {0, 0, 0, 0, 0};
     int quantityToRead = sizeof(Data_s);
     int quantityReaddean = 0;
 

@@ -59,7 +59,7 @@ extern int *Client_start()
 {
     int timeoutCounter = 0;
 
-    printf("%sConnection tent to the server%s\n\n", "\033[34m", "\033[0m");
+    printf("%sTentative de connexion au serveur%s\n\n", "\033[34m", "\033[0m");
 
     while (timeoutCounter < MAX_CONNECTION_ATTEMPT)
     {
@@ -109,7 +109,7 @@ extern void Client_sendMsg(Data_s data)
 
 extern Data_s Client_readMsg()
 {
-    Data_s data;
+    Data_s data = {0, 0, 0, 0, 0};
     int quantityToRead = sizeof(Data_s);
     int quantityReaddean = 0;
 
