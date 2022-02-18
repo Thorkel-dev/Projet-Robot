@@ -8,13 +8,13 @@ INTOXDIR = $(realpath ../infox_prose-x86_64-v0.3/)
 
 export SUBDIRS_TELCO = src/telco
 export SUBDIRS_COMMANDO = src/commando
-export BINDIR = ../bin
+export BINDIR = bin
 export CHECK_DIR = report
 #
 # Définitions du binaire à générer.
 #
-export PROG_TELCO = $(BINDIR)/telco
-export PROG_COMMANDO = $(BINDIR)/commando
+export PROG_TELCO = ../$(BINDIR)/telco
+export PROG_COMMANDO = ../$(BINDIR)/commando
 
 #
 # Définitions des outils.
@@ -49,6 +49,7 @@ export LDFLAGS += -L$(INTOXDIR)/lib/ -linfox
 
 # Compilation récursive.
 all: 
+	@[ -d $(BINDIR) ] || mkdir -p $(BINDIR)
 	@for i in $(SUBDIRS_COMMANDO); do (cd $$i; make $@); done
 	@for i in $(SUBDIRS_TELCO); do (cd $$i; make $@); done
 
