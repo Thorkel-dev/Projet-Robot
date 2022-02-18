@@ -16,11 +16,13 @@ To launch the application, you just have to execute the command `java -jar intox
 An interface is launched. This is the robot simulator.
 
 To control the robot running in a terminal the binary, in `monRobot/bin` after running the make command in `monRobot/` :
-- `robot_pc` for version 1 and 1.5
+- `robot_pc` for version 1 to 1.5
 - `telco` (client) and `commado` (server) for version 2 and higher 
 
 Now you can control the robot.
 
+## Developer :computer:
+If you wish to develop this project. Add the `infox_prose-x86_64-v0.3` library to the root of the project. This library belongs to **Matthias Brun**, professor at ESEO.
 ## Limits :warning:
 
 The dialoge line is in French :fr:.
