@@ -19,7 +19,7 @@ static int socket_ecoute;
 static struct sockaddr_in server_address;
 
 /**
- * @brief Convert data to Byte order
+ * @brief Convert data to Byte order fot host
  *
  * @param order The type of order
  * @param direction The direction in which the robot should go.
@@ -29,7 +29,20 @@ static struct sockaddr_in server_address;
  *
  * @return Data_s convert data to Byte order
  */
-static Data_s convertData(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity);
+static Data_s convertDataReception(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity);
+
+/**
+ * @brief Convert data to Byte order for network
+ *
+ * @param order The type of order
+ * @param direction The direction in which the robot should go.
+ * @param speed The speed
+ * @param collision Collision sensor status
+ * @param luminosity The luminosity measured
+ *
+ * @return Data_s convert data to Byte order
+ */
+static Data_s convertDataSend(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity);
 
 extern void Client_new()
 {
@@ -86,24 +99,16 @@ extern void Client_stop()
 
 extern void Client_sendMsg(Data_s data)
 {
-    data = convertData(data.order, data.direction, data.speed, data.collision, data.luminosity);
+    data = convertDataSend(data.order, data.direction, data.speed, data.collision, data.luminosity);
 
     int quantityWritten = 0;
     int quantityToWrite = sizeof(data);
 
-    while (quantityToWrite > 0)
-    {
-        quantityWritten += write(socket_ecoute, &data, quantityToWrite);
+    quantityWritten = write(socket_ecoute, &data + quantityWritten, quantityToWrite);
 
-        if (quantityWritten < 0)
-        {
-            printf("%sErreur lors de l'envoi du message%s\n", "\033[41m", "\033[0m");
-            break;
-        }
-        else
-        {
-            quantityToWrite -= quantityWritten;
-        }
+    if (quantityWritten < 0)
+    {
+        printf("%sErreur lors de l'envoi du message%s\n", "\033[41m", "\033[0m");
     }
 }
 
@@ -130,14 +135,14 @@ extern Data_s Client_readMsg()
 
     if (quantityToRead == 0)
     {
-        data = convertData(data.order, data.direction, data.speed, data.collision, data.luminosity);
+        data = convertDataReception(data.order, data.direction, data.speed, data.collision, data.luminosity);
         TRACE("Receive data:\tDirection: %d - Event: %d - Speed: %d - Collision: %d - Luminosity: %d\n\n", data.direction, data.order, data.speed, data.collision, data.luminosity);
     }
 
     return data;
 }
 
-static Data_s convertData(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity)
+static Data_s convertDataReception(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity)
 {
     Data_s data;
     data.direction = ntohl(direction);
@@ -145,5 +150,16 @@ static Data_s convertData(const Order_e order, const Direction_e direction, cons
     data.collision = ntohl(collision);
     data.luminosity = ntohl(luminosity);
     data.speed = ntohl(speed);
+    return data;
+}
+
+static Data_s convertDataSend(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity)
+{
+    Data_s data;
+    data.direction = htonl(direction);
+    data.order = htonl(order);
+    data.collision = htonl(collision);
+    data.luminosity = htonl(luminosity);
+    data.speed = htonl(speed);
     return data;
 }

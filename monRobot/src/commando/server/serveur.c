@@ -53,7 +53,7 @@ static struct sockaddr_in adresse;
 static VelocityVector_s translate(const Direction_e direction);
 
 /**
- * @brief Convert data to Byte order
+ * @brief Convert data to Byte order for host
  *
  * @param order The type of order
  * @param direction The direction in which the robot should go.
@@ -63,7 +63,20 @@ static VelocityVector_s translate(const Direction_e direction);
  *
  * @return Data_s convert data to Byte order
  */
-static Data_s convertData(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity);
+static Data_s convertDataReception(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity);
+
+/**
+ * @brief Convert data to Byte order for network
+ *
+ * @param order The type of order
+ * @param direction The direction in which the robot should go.
+ * @param speed The speed
+ * @param collision Collision sensor status
+ * @param luminosity The luminosity measured
+ *
+ * @return Data_s convert data to Byte order
+ */
+static Data_s convertDataSend(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity);
 
 /**
  * @brief Allows the server to run after it is launched
@@ -72,7 +85,6 @@ static void run();
 
 static bool_e work;
 static VelocityVector_s vectorDefault = {D_STOP, 0};
-struct timeval timeout = {1, 0};
 
 extern void Server_new()
 {
@@ -113,23 +125,15 @@ extern void Server_stop()
 
 static void sendMsg(const PilotState_s pilot)
 {
-    Data_s data = convertData(0, 0, pilot.speed, pilot.collision, pilot.luminosity);
+    Data_s data = convertDataSend(0, 0, pilot.speed, pilot.collision, pilot.luminosity);
     int quantityWritten = 0;
     int quantityToWrite = sizeof(data);
 
-    while (quantityToWrite > 0)
-    {
-        quantityWritten = write(socket_donnees, &data + quantityWritten, quantityToWrite);
+    quantityWritten = write(socket_donnees, &data + quantityWritten, quantityToWrite);
 
-        if (quantityWritten < 0)
-        {
-            printf("%sErreur lors de l'envoi du message%s\n", "\033[41m", "\033[0m");
-            break;
-        }
-        else
-        {
-            quantityToWrite -= quantityWritten;
-        }
+    if (quantityWritten < 0)
+    {
+        printf("%sErreur lors de l'envoi du message%s\n", "\033[41m", "\033[0m");
     }
     TRACE("Send data:\tDirection: %d - Event: %d - Speed: %d - Collision: %d - Luminosity: %d\n", data.direction, data.order, data.speed, data.collision, data.luminosity);
 }
@@ -157,7 +161,7 @@ static void readMsg()
 
     if (quantityToRead == 0)
     {
-        data = convertData(data.order, data.direction, 0, 0, 0);
+        data = convertDataReception(data.order, data.direction, 0, 0, 0);
         TRACE("Receive data:\tDirection: %d - Event: %d\n", data.direction, data.order);
         if (data.order == O_ASK_LOG)
         {
@@ -182,7 +186,7 @@ static VelocityVector_s translate(const Direction_e direction)
     return velocityVector;
 }
 
-static Data_s convertData(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity)
+static Data_s convertDataReception(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity)
 {
     Data_s data;
     data.direction = ntohl(direction);
@@ -190,6 +194,17 @@ static Data_s convertData(const Order_e order, const Direction_e direction, cons
     data.collision = ntohl(collision);
     data.luminosity = ntohl(luminosity);
     data.speed = ntohl(speed);
+    return data;
+}
+
+static Data_s convertDataSend(const Order_e order, const Direction_e direction, const int speed, const bool_e collision, const int luminosity)
+{
+    Data_s data;
+    data.direction = htonl(direction);
+    data.order = htonl(order);
+    data.collision = htonl(collision);
+    data.luminosity = htonl(luminosity);
+    data.speed = htonl(speed);
     return data;
 }
 
@@ -202,9 +217,6 @@ static void run()
 
     while (work == TRUE && timeoutCount < MAX_CONNECTION_ATTEMPT)
     {
-        FD_SET(STDIN_FILENO, &readFd);  // The terminal
-        FD_SET(socket_ecoute, &readFd); // Server Socket
-
         struct termios oldt, newt;
         // Write stdin parameters to old
         tcgetattr(STDIN_FILENO, &oldt);
@@ -214,28 +226,33 @@ static void run()
         // Change the attributes immediately
         tcsetattr(STDIN_FILENO, TCSANOW, &newt);
 
+        FD_SET(STDIN_FILENO, &readFd);  // The terminal
+        FD_SET(socket_ecoute, &readFd); // Server Socket
+        struct timeval timeout = {60, 0}; //Time out for select()
+        
         if (clientConnect) // We check if we are connected
         {
             FD_SET(socket_donnees, &readFd); // Client socket
         }
         else // We are not connected
         {
-            printf("%s%s%sÉchec de la connexion, tentative n°%d / %d%s\n", "\033[1A", "\033[K", "\033[33m", timeoutCount, MAX_CONNECTION_ATTEMPT, "\033[0m");
+            printf("%s%s%sTentative de connexion...%s\n", "\033[1A", "\033[K", "\033[33m", "\033[0m");
         }
 
         int rc = select(FD_SETSIZE, &readFd, NULL, NULL, &timeout);
         // We monitor a descriptor
         if (rc == -1)
         {
+            printf("%sError with %sselect()%s\n", "\033[41m", "\033[21m", "\033[0m");
             break; // Error
         }
         else if (rc == 0)
         {
-            timeoutCount++;
+            TRACE("Client not connected or inactive")
+            work = FALSE;
         }
         else
         {
-            timeoutCount = 0;
             // We check if the descriptors are present
             if (FD_ISSET(socket_ecoute, &readFd))
             {
@@ -248,12 +265,18 @@ static void run()
                 else
                 {
                     clientConnect = TRUE;
+                    timeoutCount = 0;
                     printf("%s%s%sConnexion réussite%s\n", "\033[1A", "\033[K", "\033[33m", "\033[0m");
                 }
             }
             else if (FD_ISSET(socket_donnees, &readFd))
             {
                 readMsg();
+            }
+            else if (FD_ISSET(STDIN_FILENO, &readFd))
+            {
+                TRACE("Utilisation du terminal");
+                break;
             }
         }
         // We put back the old parameters

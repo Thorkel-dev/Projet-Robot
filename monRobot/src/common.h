@@ -8,7 +8,6 @@
 
 #define IP_SERVER "127.0.0.1"
 #define PORT_SERVER 2345
-#define SIZE_MESSAGE 128
 typedef enum
 {
     D_STOP = 0,
